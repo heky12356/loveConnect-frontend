@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Text, View, StyleSheet, Dimensions, Pressable } from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 
 type Prop = {
   onPress?: () => void;
@@ -28,6 +28,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: width * 0.4,
     width: width * 0.4,
-    borderRadius: 10,
+    borderRadius: 20,
   },
 });

@@ -1,7 +1,16 @@
-import { View, Text, StyleSheet, Dimensions, ViewStyle } from "react-native";
-import EvilIcons from '@expo/vector-icons/EvilIcons';
-import Feather from '@expo/vector-icons/Feather';
+import EvilIcons from "@expo/vector-icons/EvilIcons";
+import Feather from "@expo/vector-icons/Feather";
+import {
+  Dimensions,
+  Image,
+  ImageSourcePropType,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from "react-native";
 const { height, width } = Dimensions.get("window");
+const img: ImageSourcePropType = require('@/assets/images/avaretor_example.png')
 
 type Prop = {
   style?: ViewStyle;
@@ -11,14 +20,36 @@ export default function NavBar({ style }: Prop) {
   return (
     <View style={[styles.navbar, style]}>
       <View style={styles.avatar}>
-        <Text>头像</Text>
+        <Image
+          source={img}
+          style={{
+            width: width * 0.15,
+            height: width * 0.15,
+            borderRadius: width * 0.075,
+          }}
+        />
       </View>
       <View style={styles.content}>
-        <Text>用户名</Text>
+        <View>
+          <Text style={styles.userName}>用户名</Text>
+        </View>
+        <View>
+          <Text>点击切换/更改资料</Text>
+        </View>
       </View>
       <View style={styles.util}>
-        <EvilIcons name="search" size={30} color="black" style={{backgroundColor:"red"}} />
-        <Feather name="more-horizontal" size={24} color="black" style={{marginTop:0, backgroundColor:"red"}} />
+        <EvilIcons
+          name="search"
+          size={30}
+          color="black"
+          // style={{ backgroundColor: "red" }}
+        />
+        <Feather
+          name="more-horizontal"
+          size={24}
+          color="black"
+          style={{ marginTop: 0 }}
+        />
       </View>
     </View>
   );
@@ -31,7 +62,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 10,
     // backgroundColor: "transparent",
-    backgroundColor: "green",
+    // backgroundColor: "green",
     // borderBottomWidth: 1,
     borderBottomColor: "#ccc",
     paddingTop: height * 0.05,
@@ -41,12 +72,13 @@ const styles = StyleSheet.create({
     width: width * 0.15,
     height: width * 0.15,
     borderRadius: width * 0.075,
-    backgroundColor: "red",
+    // backgroundColor: "red",
   },
   content: {
-    alignItems: "center",
+    // alignItems: "center",
+    paddingLeft: width * 0.03,
     width: width * 0.55,
-    backgroundColor: "blue",
+    // backgroundColor: "blue",
   },
   util: {
     flex: 1,
@@ -56,5 +88,9 @@ const styles = StyleSheet.create({
     gap: 10,
     alignItems: "flex-end",
     marginRight: width * 0.05,
-  }
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
 });

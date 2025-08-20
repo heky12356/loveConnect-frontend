@@ -1,10 +1,10 @@
 import {
+  Dimensions,
+  ImageBackground,
+  Pressable,
+  StyleSheet,
   Text,
   View,
-  StyleSheet,
-  Dimensions,
-  Pressable,
-  ImageBackground,
 } from "react-native";
 
 type Prop = {
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: width,
     height: "100%",
-    backgroundColor: "red",
+    // backgroundColor: "red",
     margin: -width * 0.05,
   },
   text: {

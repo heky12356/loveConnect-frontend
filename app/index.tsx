@@ -1,14 +1,14 @@
-import { Text, View, StyleSheet, Dimensions } from "react-native";
-import Foundation from "@expo/vector-icons/Foundation";
-import Feather from "@expo/vector-icons/Feather";
-import Fontisto from "@expo/vector-icons/Fontisto";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Link, router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import BigButton from "@/components/BigButton";
 import NavBar from "@/components/NavBar";
 import AiLogoButton from "@/components/aiLogoButton";
+import Feather from "@expo/vector-icons/Feather";
+import Fontisto from "@expo/vector-icons/Fontisto";
+import Foundation from "@expo/vector-icons/Foundation";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import React from "react";
+import { Dimensions, StyleSheet, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 
@@ -18,6 +18,11 @@ const GlobalFontSize = width * 0.1;
 const handlePress = () => {
   console.log("Pressed!");
   router.push("/(about)/about");
+};
+
+const handleTimingSetPress = () => {
+  console.log("TimingSet Pressed!");
+  router.push("/(timingSet)/timingSet");
 };
 
 export default function Index() {
@@ -69,7 +74,7 @@ export default function Index() {
           </View>
           <View style={{ flexDirection: "row", gap: GlobalGap }}>
             <BigButton
-              onPress={handlePress}
+              onPress={handleTimingSetPress}
               label={"定时设置"}
               icon={
                 <Fontisto
@@ -126,13 +131,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: GlobalGap,
-    backgroundColor: "blue",
+    // backgroundColor: "blue",
   },
   logo: {
     height: height * 0.22,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "green",
+    // backgroundColor: "green",
   },
   navbar: {
     width: width,
