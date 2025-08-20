@@ -12,7 +12,7 @@ type Prop = {
   label : string
 }
 const handleAiPress = () => {
-  console.log("AI Pressed!");
+  // console.log("AI Pressed!");
   router.push("/(aiPage)/aiPage");
 };
 

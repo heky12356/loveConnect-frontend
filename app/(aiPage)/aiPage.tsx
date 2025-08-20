@@ -2,7 +2,16 @@ import AiChatButtons from "@/components/aiChatButtons";
 import ReqChatItem from "@/components/reqChatItem";
 import ReqpChatItem from "@/components/reqpChatItem";
 import { LinearGradient } from "expo-linear-gradient";
-import { Dimensions, Image, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+
+import {
+    Dimensions,
+    Image,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
 
 const { height, width } = Dimensions.get("window");
 const profileimg = require("@/assets/images/profile.png");
@@ -13,6 +22,10 @@ const Profile = () => {
       <Image source={profileimg} resizeMode="cover" style={style.profileImg} />
     </View>
   );
+};
+
+const handleTitlePress = () => {
+    router.push("/aiListPage");
 };
 
 export default function AiPage() {
@@ -27,9 +40,11 @@ export default function AiPage() {
       }}
     >
       <View style={style.container}>
-        <View style={style.title}>
-          <Text style={style.titleText}>女儿</Text>
-        </View>
+        <Pressable onPress={handleTitlePress}>
+          <View style={style.title}>
+            <Text style={style.titleText}>女儿</Text>
+          </View>
+        </Pressable>
         <View style={style.profile}>
           <Profile />
         </View>
