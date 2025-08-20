@@ -25,6 +25,10 @@ const handleTimingSetPress = () => {
   router.push("/(timingSet)/timingSet");
 };
 
+const handleActivitiesMapPress = () => {
+  router.push("/(activitiesMap)/activitiesMap");
+};
+
 export default function Index() {
   return (
     <LinearGradient
@@ -64,7 +68,7 @@ export default function Index() {
               backgroudColor="#d9e2ff"
             />
             <BigButton
-              onPress={handlePress}
+              onPress={handleActivitiesMapPress}
               label={"活动地图"}
               icon={
                 <Feather name="map-pin" size={GlobalFontSize} color="black" />
