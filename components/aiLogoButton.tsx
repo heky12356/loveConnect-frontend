@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import {
   Dimensions,
   ImageBackground,
@@ -8,13 +9,17 @@ import {
 } from "react-native";
 
 type Prop = {
-  onPress?: () => void;
-  label?: string;
+  label : string
+}
+const handleAiPress = () => {
+  console.log("AI Pressed!");
+  router.push("/(aiPage)/aiPage");
 };
 
-export default function AiLogoButton({ onPress, label }: Prop) {
+export default function AiLogoButton({label} : Prop) {
+
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={handleAiPress}>
       <View style={[styles.container]}>
         <ImageBackground
           source={require("../assets/images/logo.png")}

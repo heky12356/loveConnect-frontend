@@ -21,7 +21,7 @@ const handlePress = () => {
 };
 
 const handleTimingSetPress = () => {
-  console.log("TimingSet Pressed!");
+  // console.log("TimingSet Pressed!");
   router.push("/(timingSet)/timingSet");
 };
 
