@@ -6,13 +6,16 @@ const iconSize = width * 0.08;
 
 type Prop = {
   onPress?: () => void;
+  Setwidth?: number;
 }
 
-export default function AiListAddItemButton({onPress}: Prop) {
+export default function AiListAddItemButton({onPress, Setwidth}: Prop) {
   return (
     <View style={styles.container}>
       <Pressable onPress={onPress}>
-        <View style={styles.viewBox}>
+        <View style={[styles.viewBox, {
+          width: Setwidth ? Setwidth : width * 0.85,
+        }]}>
           <FontAwesome6 name="add" size={iconSize} color="black" />
         </View>
       </Pressable>
@@ -30,8 +33,7 @@ const styles = StyleSheet.create({
   },
   viewBox: {
     flexDirection: "row",
-    height: height * 0.12,
-    width: width * 0.85,
+    height: height * 0.115,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFC7C7",
