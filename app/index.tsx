@@ -30,6 +30,10 @@ const handleActivitiesMapPress = () => {
   router.push("/(activitiesMap)/activitiesMap");
 };
 
+const handleMsgPress = () => {
+  router.push("/(msgPage)/msgPage");
+};
+
 export default function Index() {
   const [isFirstAttention, setIsFirstAttention] = useFirstAttention();
 
@@ -103,7 +107,7 @@ export default function Index() {
           </View>
           <View style={{ flexDirection: "row", gap: GlobalGap }}>
             <BigButton
-              onPress={handlePress}
+              onPress={handleMsgPress}
               label={"消息通知"}
               icon={
                 <MaterialCommunityIcons
