@@ -9,24 +9,44 @@ import {
 } from "react-native";
 
 type Prop = {
-  label : string
-}
-const handleAiPress = () => {
+  label: string;
+  isFirstAttention: boolean;
+  setIsFirstAttention: (isFirstAttention: boolean) => void;
+};
+const handleAiPress = ({
+  isFirstAttention,
+  setIsFirstAttention,
+}: {
+  isFirstAttention: boolean;
+  setIsFirstAttention: (isFirstAttention: boolean) => void;
+}) => {
   // console.log("AI Pressed!");
-  router.push("/(aiPage)/aiPage");
+  if (isFirstAttention) {
+    // setIsFirstAttention(false);
+    console.log("isFirstAttention", isFirstAttention);
+    router.push({
+      pathname: "/(aiPage)/firstAttentionPage",
+    });
+  } else {
+    router.push("/(aiPage)/aiPage");
+  }
 };
 
-export default function AiLogoButton({label} : Prop) {
-
+export default function AiLogoButton({
+  label,
+  isFirstAttention,
+  setIsFirstAttention,
+}: Prop) {
   return (
-    <Pressable onPress={handleAiPress}>
+    <Pressable
+      onPress={() => handleAiPress({ isFirstAttention, setIsFirstAttention })}
+    >
       <View style={[styles.container]}>
         <ImageBackground
           source={require("../assets/images/logo.png")}
           style={styles.backgroundImage}
           resizeMode="contain"
-        >
-        </ImageBackground>
+        ></ImageBackground>
         <Text style={styles.text}>{label}</Text>
       </View>
     </Pressable>
@@ -56,5 +76,5 @@ const styles = StyleSheet.create({
     // fontWeight: "bold",
     marginTop: -width * 0.01,
     marginBottom: width * 0.1,
-  }
+  },
 });

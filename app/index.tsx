@@ -1,6 +1,7 @@
 import BigButton from "@/components/BigButton";
 import NavBar from "@/components/NavBar";
 import AiLogoButton from "@/components/aiLogoButton";
+import { useFirstAttention } from "@/hook/getFirstAttention";
 import Feather from "@expo/vector-icons/Feather";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import Foundation from "@expo/vector-icons/Foundation";
@@ -30,6 +31,8 @@ const handleActivitiesMapPress = () => {
 };
 
 export default function Index() {
+  const [isFirstAttention, setIsFirstAttention] = useFirstAttention();
+
   return (
     <LinearGradient
       colors={["#FFE9EA", "#EDFFB8", "#FFFFFF"]}
@@ -122,7 +125,7 @@ export default function Index() {
           </View>
         </View>
         <View style={styles.logo}>
-          <AiLogoButton label="有问题，问AI" />
+          <AiLogoButton label="有问题，问AI" isFirstAttention={isFirstAttention} setIsFirstAttention={setIsFirstAttention} />
         </View>
       </View>
     </LinearGradient>
