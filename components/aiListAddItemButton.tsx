@@ -4,14 +4,14 @@ const { width, height } = Dimensions.get("window");
 
 const iconSize = width * 0.08;
 
-const handlePress = () => {
-  console.log("Add Item Pressed");
-};
+type Prop = {
+  onPress?: () => void;
+}
 
-export default function AiListAddItemButton() {
+export default function AiListAddItemButton({onPress}: Prop) {
   return (
     <View style={styles.container}>
-      <Pressable onPress={handlePress}>
+      <Pressable onPress={onPress}>
         <View style={styles.viewBox}>
           <FontAwesome6 name="add" size={iconSize} color="black" />
         </View>

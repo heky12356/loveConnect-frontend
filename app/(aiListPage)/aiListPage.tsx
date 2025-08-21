@@ -2,10 +2,15 @@ import AiChatButtons from "@/components/aiChatButtons";
 import AiListAddItemButton from "@/components/aiListAddItemButton";
 import AiListItem from "@/components/aiListItem";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import { Dimensions, StyleSheet, View } from "react-native";
 const { width, height } = Dimensions.get("window");
 
 const exampleImg = require("@/assets/images/profile.png");
+
+const handleAddItemPress = () => {
+  router.push("/addAiPage");
+};
 
 export default function AiListPage() {
   return (
@@ -23,7 +28,7 @@ export default function AiListPage() {
           <AiListItem name="女儿" img={exampleImg} />
           <AiListItem name="儿子" />
           <AiListItem name="儿媳妇" />
-          <AiListAddItemButton />
+          <AiListAddItemButton onPress={handleAddItemPress} />
         </View>
         <View style={styles.buttons}>
           <AiChatButtons />
