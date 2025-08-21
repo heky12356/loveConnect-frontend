@@ -5,12 +5,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 
 import {
-    Dimensions,
-    Image,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  Dimensions,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 const { height, width } = Dimensions.get("window");
@@ -53,7 +53,7 @@ export default function AiPage() {
           <ReqChatItem time="12:01" />
         </View>
         <View style={style.buttons}>
-          <AiChatButtons />
+          <AiChatButtons path="/" />
         </View>
       </View>
     </LinearGradient>

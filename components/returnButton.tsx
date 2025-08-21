@@ -3,18 +3,25 @@ import { router } from "expo-router";
 import { Dimensions, Pressable, StyleSheet, View } from "react-native";
 const { height, width } = Dimensions.get("window");
 
-const handleReturn = () => {
+const handleReturn = (path?: string) => {
 //   console.log("return");
-  router.back();
+  if (path) {
+    router.push(path as any);
+  } else {
+    router.back();
+  }
+
 };
 
 const iconStyle = width * 0.1;
 
+type Prop = {
+  path?: string;
+}
 
-
-export default function ReturnButton() {
+export default function ReturnButton({path}: Prop) {
   return (
-    <Pressable onPress={handleReturn}>
+    <Pressable onPress={() => handleReturn(path)}>
       <View style={style.returnButton}>
         <AntDesign name="left" size={iconStyle} color="white" />
       </View>

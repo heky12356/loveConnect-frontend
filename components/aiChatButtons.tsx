@@ -6,11 +6,14 @@ import { Dimensions, StyleSheet, View } from 'react-native';
 
 const { width } = Dimensions.get("window");
 
+type Prop = {
+    path?: string;
+}
 
-export default function AiChatButtons() {
+export default function AiChatButtons({path}: Prop) {
     return (
         <View style={styles.container}>
-            <ReturnButton />
+            <ReturnButton path={path} />
             <CircleButton />
             <TextButton />
         </View>

@@ -2,6 +2,7 @@ import NormalNavBar from "@/components/normalNavBar";
 import { useFirstAttention } from "@/hook/getFirstAttention";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
@@ -14,8 +15,20 @@ const handleFirstAttention = ({
   isFirstAttention: boolean;
   setIsFirstAttention: (isFirstAttention: boolean) => void;
 }) => {
-  console.log(isFirstAttention);
+  //   console.log(isFirstAttention);
   setIsFirstAttention(false);
+  router.push("/aiPage");
+};
+
+const handleFeedback = ({
+  isFirstAttention,
+  setIsFirstAttention,
+}: {
+  isFirstAttention: boolean;
+  setIsFirstAttention: (isFirstAttention: boolean) => void;
+}) => {
+  setIsFirstAttention(false);
+  router.push("/feedbackPage");
 };
 
 const RadiusButton = ({
@@ -60,11 +73,16 @@ export default function FirstAttentionPage() {
             <RadiusButton
               color="#A7BAFF"
               text="像孩子 的声音"
-              onPress={() => {handleFirstAttention({ isFirstAttention, setIsFirstAttention })}}
+              onPress={() => {
+                handleFirstAttention({ isFirstAttention, setIsFirstAttention });
+              }}
             />
             <RadiusButton
               color="#FEB4BE"
               text="不太像，再改改"
+              onPress={() => {
+                handleFeedback({ isFirstAttention, setIsFirstAttention });
+              }}
             />
           </View>
           <Text style={styles.judgeButtonViewText}>点击后，孩子会收到反馈</Text>
