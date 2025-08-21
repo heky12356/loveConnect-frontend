@@ -1,64 +1,82 @@
-import AntDesign from '@expo/vector-icons/AntDesign';
+import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from "@expo/vector-icons/Feather";
-import { Dimensions, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 const { width, height } = Dimensions.get("window");
 
 const iconSize = width * 0.1;
 const iconTailSize = width * 0.05;
 
 type Props = {
-    title: string;
-    week: string;
-    time: string;
-}
+  title: string;
+  week: string;
+  time: string;
+};
 
-const AttendButton = () => {
-    return (
-        <View style={styles.attendButton}>
-            <Text style={styles.attendButtonText}>
-                参加
-            </Text>
-        </View>
-    )
-}
+const AttendButton = ({
+  isAttended,
+  setIsAttended,
+}: {
+  isAttended: boolean;
+  setIsAttended: (isAttended: boolean) => void;
+}) => {
+  const handleAttendPress = () => {
+    console.log("attend");
+    setIsAttended(!isAttended);
+  };
 
-const PlayButton = () => {
   return (
-    <View style={styles.playButton}>
+    <Pressable style={styles.attendButton} onPress={handleAttendPress}>
+      <View style={[styles.attendButtonView, {backgroundColor : isAttended ? '#A7BAFF' : '#FEADB4'}]}>
+        <Text style={[styles.attendButtonText]}>{isAttended ? '已参加' : '参加'}</Text>
+      </View>
+    </Pressable>
+  );
+};
+
+const PlayButton = ({isAttended} : {isAttended:boolean}) => {
+  return (
+    <View style={[styles.playButton, {
+      borderColor: isAttended ? '#A7BAFF' : '#FEADB4',
+      borderWidth: isAttended ? width * 0.02 : 0,
+    }]}>
       <Feather name="play-circle" size={iconSize} color="black" />
-      <View style={styles.playButtonIconTail}>
+      <View style={[styles.playButtonIconTail, {
+        top: isAttended ? width * 0.21 : width * 0.23,
+        left: isAttended ? width * 0.21 : width * 0.23,
+      }]}>
         <AntDesign name="sound" size={iconTailSize} color="black" />
       </View>
     </View>
   );
 };
 
-export default function ActivityItem({title, week, time}: Props) {
+export default function ActivityItem({ title, week, time }: Props) {
+  const [isAttended, setIsAttended] = useState(false);
+
   return (
     <View style={styles.container}>
       <View style={styles.playButtonView}>
-        <PlayButton />
+        <PlayButton isAttended={isAttended} />
       </View>
       <View style={styles.content}>
         <View style={styles.title}>
-            <Text style={styles.titleText}>{title}</Text>
+          <Text style={styles.titleText}>{title}</Text>
         </View>
         <View style={styles.time}>
-            <View>
-                <Text style={styles.timeText}>{week}</Text>
-            </View>
-            <View>
-                <Text style={styles.timeText}>
-                    {time}
-                </Text>
-            </View>
+          <View>
+            <Text style={styles.timeText}>{week}</Text>
+          </View>
+          <View>
+            <Text style={styles.timeText}>{time}</Text>
+          </View>
         </View>
         <View style={styles.friend}>
-            <Text>朋友已参加</Text>
-            <AntDesign name="arrowright" size={15} color="black" />
+          <Text>朋友已参加</Text>
+          <AntDesign name="arrowright" size={15} color="black" />
         </View>
         <View style={styles.button}>
-            <AttendButton />
+          <AttendButton isAttended={isAttended} setIsAttended={setIsAttended} />
         </View>
       </View>
     </View>
@@ -150,6 +168,12 @@ const styles = StyleSheet.create({
     color: "white",
   },
   attendButton: {
+    height: height * 0.04,
+    width: width * 0.15,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  attendButtonView: {
     height: height * 0.04,
     width: width * 0.15,
     justifyContent: "center",
