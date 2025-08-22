@@ -1,14 +1,33 @@
 import AiListAddItem from "@/components/aiListAddItem";
 import ReturnButton from "@/components/returnButton";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { Dimensions, StyleSheet, View } from "react-native";
+import { useState } from "react";
+import { Dimensions, Image, Pressable, StyleSheet, View } from "react-native";
 
 const { width, height } = Dimensions.get("window");
 
 const iconSize = height * 0.11;
 
 export default function AddAiPage() {
+  const [selectedImage, setSelectedImage] = useState<string | undefined>(
+    undefined
+  );
+
+  const handleAddImg = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    } else {
+      alert("You did not select any image.");
+    }
+  };
   return (
     <LinearGradient
       colors={["#FFD0D0", "#EDFFB8", "#FFFFFF", "#FFCBCB"]}
@@ -21,9 +40,13 @@ export default function AddAiPage() {
     >
       <View style={styles.container}>
         <View style={styles.profile}>
-          <View style={styles.profileView}>
-            <Ionicons name="add" size={iconSize} color="black" />
-          </View>
+          <Pressable style={styles.profileView} onPress={handleAddImg}>
+            {selectedImage ? (
+              <Image source={{ uri: selectedImage }} style={styles.image} />
+            ) : (
+              <Ionicons name="add" size={iconSize} color="black" />
+            )}
+          </Pressable>
         </View>
         <View style={styles.content}>
           <AiListAddItem tag="关系" label="女儿" />
@@ -62,6 +85,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "white",
     borderRadius: height * 0.27,
+  },
+  image: {
+    height: height * 0.25,
+    width: height * 0.25,
+    borderRadius: height * 0.25,
   },
   content: {
     paddingTop: height * 0.02,
