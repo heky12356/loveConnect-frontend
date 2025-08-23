@@ -1,9 +1,11 @@
 import EvilIcons from "@expo/vector-icons/EvilIcons";
 import Feather from "@expo/vector-icons/Feather";
+import { router } from "expo-router";
 import {
   Dimensions,
   Image,
   ImageSourcePropType,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -33,9 +35,11 @@ export default function NavBar({ style }: Prop) {
         <View>
           <Text style={styles.userName}>用户名</Text>
         </View>
-        <View>
+        <Pressable onPress={() => {
+          router.push("/profilePage")
+        }}>
           <Text>点击切换/更改资料</Text>
-        </View>
+        </Pressable>
       </View>
       <View style={styles.util}>
         <EvilIcons

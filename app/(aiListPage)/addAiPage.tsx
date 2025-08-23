@@ -25,7 +25,7 @@ export default function AddAiPage() {
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
     } else {
-      alert("You did not select any image.");
+      alert("你没有选择图片");
     }
   };
   return (
