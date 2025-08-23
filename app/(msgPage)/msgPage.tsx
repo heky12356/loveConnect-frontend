@@ -2,7 +2,8 @@ import AiListItem from "@/components/aiListItem";
 import ReturnButton from "@/components/returnButton";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Dimensions, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 const GlobalFontSize = width * 0.3;
@@ -32,6 +33,13 @@ export default function MsgPage() {
           <AiListItem name="女儿" img={exampleImg} postNum={11} />
           <AiListItem name="儿子" />
           <AiListItem name="儿媳妇" />
+          <Pressable
+            onPress={() => {
+              router.push("/(msgPage)/timeSet");
+            }}
+          >
+            <Text>更改时间设置</Text>
+          </Pressable>
         </View>
         <View style={styles.returnButton}>
           <ReturnButton />
