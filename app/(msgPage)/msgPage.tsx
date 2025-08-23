@@ -1,6 +1,7 @@
 import AiListItem from "@/components/aiListItem";
 import ReturnButton from "@/components/returnButton";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import AntDesign from '@expo/vector-icons/AntDesign';
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
@@ -34,11 +35,13 @@ export default function MsgPage() {
           <AiListItem name="儿子" />
           <AiListItem name="儿媳妇" />
           <Pressable
+            style={styles.timeSetLink}
             onPress={() => {
               router.push("/(msgPage)/timeSet");
             }}
           >
-            <Text>更改时间设置</Text>
+            <Text style={styles.timeSetLinkText}>更改时间设置</Text>
+            <AntDesign name="right" size={width * 0.07} color="black" />
           </Pressable>
         </View>
         <View style={styles.returnButton}>
@@ -76,6 +79,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: height * 0.03,
     // backgroundColor: "blue",
+  },
+  timeSetLink: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    width: width,
+    paddingRight: width * 0.07,
+    gap: width * 0.01,
+  },
+  timeSetLinkText: {
+    fontSize: width * 0.05,
+    color: "#333",
   },
   returnButton: {
     height: height * 0.13,
