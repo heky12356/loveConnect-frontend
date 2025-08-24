@@ -1,5 +1,6 @@
 import ReturnButton from "@/components/returnButton";
-import { useState } from "react";
+import { useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import {
     Dimensions,
     StyleSheet,
@@ -8,13 +9,35 @@ import {
     View,
 } from "react-native";
 
+// 定义返回数据的 JSON 结构
+interface CirclePageResult {
+  selectedOption: RepeatOption | null;
+  selectedDays: string[];
+  optionLabel: string;
+}
+
 const { height, width } = Dimensions.get("window");
 
 type RepeatOption = "once" | "daily" | "workdays" | "custom";
 
 export default function SetCirclePage() {
-  const [selectedOption, setSelectedOption] = useState<RepeatOption | null>(null);
+  const [selectedOption, setSelectedOption] = useState<RepeatOption | null>(
+    null
+  );
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const preData = useLocalSearchParams<{
+    circleData: string;
+  }>();
+
+  useEffect(() => {
+    // console.log("preData", preData);
+    if (preData?.circleData) {
+      const data = JSON.parse(decodeURIComponent(preData.circleData));
+    //   console.log("circlepage",data);
+      setSelectedOption(data.selectedOption);
+      setSelectedDays(data.selectedDays);
+    }
+  }, []);
 
   const options = [
     { key: "once" as RepeatOption, label: "仅一次" },
@@ -41,10 +64,31 @@ export default function SetCirclePage() {
     console.log("选择的重复选项:", option);
   };
 
+  // 获取选项的中文标签
+  const getOptionLabel = (option: RepeatOption | null): string => {
+    if (!option) return "";
+    const found = options.find((opt) => opt.key === option);
+    return found ? found.label : "";
+  };
+
+  // 创建返回路径，包含选择的数据
+  const createReturnPath = (): string => {
+    const result: CirclePageResult = {
+      selectedOption,
+      selectedDays,
+      optionLabel: getOptionLabel(selectedOption),
+    };
+
+    const jsonData = JSON.stringify(result);
+    return `/(timingSet)/addTimePage?circleData=${encodeURIComponent(
+      jsonData
+    )}`;
+  };
+
   const handleDaySelect = (dayKey: string) => {
-    setSelectedDays(prev => {
+    setSelectedDays((prev) => {
       if (prev.includes(dayKey)) {
-        return prev.filter(day => day !== dayKey);
+        return prev.filter((day) => day !== dayKey);
       } else {
         return [...prev, dayKey];
       }
@@ -52,67 +96,70 @@ export default function SetCirclePage() {
   };
 
   return (
-      <View style={styles.container}>
-        <View style={styles.titleContainer}>
-          <Text style={styles.titleText}>是否重复</Text>
-        </View>
-
-        <View style={styles.contentContainer}>
-          <View style={styles.optionsContainer}>
-            {options.map((option) => (
-              <TouchableOpacity
-                key={option.key}
-                style={styles.optionItem}
-                onPress={() => handleOptionSelect(option.key)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.optionText}>{option.label}</Text>
-                <View style={styles.radioContainer}>
-                  <View
-                    style={[
-                      styles.radioButton,
-                      selectedOption === option.key && styles.radioButtonSelected,
-                    ]}
-                  >
-                    {selectedOption === option.key && (
-                      <View style={styles.radioButtonInner} />
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-          
-          {selectedOption === "custom" && (
-            <View style={styles.customDaysContainer}>
-              <View style={styles.daysGrid}>
-                {weekDays.map((day) => (
-                  <TouchableOpacity
-                    key={day.key}
-                    style={[
-                      styles.dayButton,
-                      selectedDays.includes(day.key) && styles.dayButtonSelected,
-                    ]}
-                    onPress={() => handleDaySelect(day.key)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.dayButtonText,
-                      selectedDays.includes(day.key) && styles.dayButtonTextSelected,
-                    ]}>
-                      {day.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.returnButton}>
-          <ReturnButton />
-        </View>
+    <View style={styles.container}>
+      <View style={styles.titleContainer}>
+        <Text style={styles.titleText}>是否重复</Text>
       </View>
+
+      <View style={styles.contentContainer}>
+        <View style={styles.optionsContainer}>
+          {options.map((option) => (
+            <TouchableOpacity
+              key={option.key}
+              style={styles.optionItem}
+              onPress={() => handleOptionSelect(option.key)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.optionText}>{option.label}</Text>
+              <View style={styles.radioContainer}>
+                <View
+                  style={[
+                    styles.radioButton,
+                    selectedOption === option.key && styles.radioButtonSelected,
+                  ]}
+                >
+                  {selectedOption === option.key && (
+                    <View style={styles.radioButtonInner} />
+                  )}
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {selectedOption === "custom" && (
+          <View style={styles.customDaysContainer}>
+            <View style={styles.daysGrid}>
+              {weekDays.map((day) => (
+                <TouchableOpacity
+                  key={day.key}
+                  style={[
+                    styles.dayButton,
+                    selectedDays.includes(day.key) && styles.dayButtonSelected,
+                  ]}
+                  onPress={() => handleDaySelect(day.key)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.dayButtonText,
+                      selectedDays.includes(day.key) &&
+                        styles.dayButtonTextSelected,
+                    ]}
+                  >
+                    {day.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.returnButton}>
+        <ReturnButton path={createReturnPath()} />
+      </View>
+    </View>
   );
 }
 

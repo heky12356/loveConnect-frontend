@@ -33,7 +33,7 @@ export default function TimingSet() {
 
         </View>
         <View style={style.returnButton}>
-          <ReturnButton />
+          <ReturnButton path="/"/>
         </View>
       </View>
     </LinearGradient>
