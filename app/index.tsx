@@ -34,6 +34,10 @@ const handleMsgPress = () => {
   router.push("/(msgPage)/msgPage");
 };
 
+const handleStudyPagePress = () => {
+  router.push("/(studyPage)/studyPage");
+};
+
 export default function Index() {
   const [isFirstAttention, setIsFirstAttention] = useFirstAttention();
 
@@ -97,7 +101,7 @@ export default function Index() {
               backgroudColor="#ADFFD7"
             />
             <BigButton
-              onPress={handlePress}
+              onPress={handleStudyPagePress}
               label={"学习乐园"}
               icon={
                 <Feather name="book-open" size={GlobalFontSize} color="black" />

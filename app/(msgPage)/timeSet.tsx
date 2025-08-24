@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: height * 0.08,
-    paddingHorizontal: width * 0.10,
+    paddingHorizontal: width * 0.05,
     // marginBottom: height * 0.05,
     height: height * 0.27,
     alignItems: "center",
