@@ -1,14 +1,81 @@
 import AiListAddItemButton from "@/components/aiListAddItemButton";
 import ReturnButton from "@/components/returnButton";
 import TimeSetItem from "@/components/timeSetItem";
+import { useTimeItem } from "@/hook/useTimeItem";
 import Feather from "@expo/vector-icons/Feather";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-import { Dimensions, StyleSheet, Text, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect } from "react";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 const iconStyle = width * 0.1;
+
+interface Item {
+  title: string;
+  time: string;
+}
+
+const Items = [
+  {
+    title: "起床",
+    time: "8:00",
+  },
+  {
+    title: "起床",
+    time: "8:00",
+  },
+  {
+    title: "起床",
+    time: "8:00",
+  },
+  {
+    title: "起床",
+    time: "8:00",
+  },
+  {
+    title: "起床",
+    time: "8:00",
+  },
+  {
+    title: "起床",
+    time: "8:00",
+  },
+  {
+    title: "起床",
+    time: "8:00",
+  },
+  {
+    title: "起床",
+    time: "8:00",
+  },
+  {
+    title: "起床",
+    time: "8:00",
+  },
+]
+
 export default function TimingSet() {
+  const { items, addItem } = useTimeItem();
+
+  const params = useLocalSearchParams<{
+    data: string;
+  }>();
+  useEffect(() => {
+    console.log(params?.data);
+    if (params?.data) {
+      const data = JSON.parse(decodeURIComponent(params.data));
+      // console.log(data.event);
+      if (data.event !== "") {
+        addItem({
+          title: data.event,
+          time: data.hour + ":" + data.minute,
+        });
+      }
+    }
+    // console.log(items);
+  }, []);
+
   return (
     <LinearGradient
       colors={["#FFD0D0", "#EDFFB8", "#FFFFFF", "#FFCBCB"]}
@@ -24,16 +91,21 @@ export default function TimingSet() {
           <Feather name="watch" size={iconStyle} color="black" />
           <Text style={style.titleText}>定时设置</Text>
         </View>
-        <View style={style.content}>
-          <TimeSetItem title="起床" time="8:00" />
-          <TimeSetItem title="吃药" time="11:30" />
-          <TimeSetItem title="看电视" time="19:00" />
-          <TimeSetItem title="遛弯" time="17:00" />
-          <AiListAddItemButton onPress={() => router.push("/(timingSet)/addTimePage")} Setwidth={width * 0.82} />
-
-        </View>
+        <ScrollView 
+          style={style.scrollContainer}
+          contentContainerStyle={style.content}
+          showsVerticalScrollIndicator={false}
+        >
+          {items.map((item, index) => (
+            <TimeSetItem key={index} title={item.title} time={item.time} />
+          ))}
+          <AiListAddItemButton
+            onPress={() => router.push("/(timingSet)/addTimePage")}
+            Setwidth={width * 0.82}
+          />
+        </ScrollView>
         <View style={style.returnButton}>
-          <ReturnButton path="/"/>
+          <ReturnButton path="/" />
         </View>
       </View>
     </LinearGradient>
@@ -63,13 +135,16 @@ const style = StyleSheet.create({
     // fontWeight: "bold",
     color: "black",
   },
-  content: {
+  scrollContainer: {
     flex: 1,
-    paddingTop: height * 0.01,
-    // justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
     width: width * 0.9,
+    backgroundColor: "#FFFFFF",
+  },
+  content: {
+    paddingTop: height * 0.01,
+    paddingBottom: height * 0.02,
+    justifyContent: "flex-start",
+    alignItems: "center",
     gap: height * 0.01,
   },
   returnButton: {

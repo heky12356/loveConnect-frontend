@@ -17,6 +17,17 @@ import {
 const { height, width } = Dimensions.get("window");
 const iconStyle = width * 0.1;
 
+interface TimeData {
+  selectedLabel: string;
+  selectedDays: string[];
+  hour: string;
+  minute: string;
+  year: string;
+  month: string;
+  day: string;
+  event: string;
+}
+
 const IsSetter = ({
   isSound,
   setIsSound,
@@ -61,9 +72,12 @@ export default function AddTimePage() {
   const [year, setYear] = useState("2025");
   const [month, setMonth] = useState("01");
   const [day, setDay] = useState("01");
+  const [event, setEvent] = useState("");
   const [isSound, setIsSound] = useState(false);
   const [isCircle, setIsCircle] = useState(false);
   const [preCircleData, setCirclePreData] = useState("");
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [selectedLabel, setSelectedLabel] = useState("");
 
   const circleData = useLocalSearchParams<{
     circleData: string;
@@ -75,6 +89,8 @@ export default function AddTimePage() {
       // console.log(parsedData);
       if (parsedData.selectedOption) {
         setIsCircle(true);
+        setSelectedDays(parsedData.selectedDays);
+        setSelectedLabel(parsedData.selectedOption);
         setCirclePreData(circleData.circleData);
       }
     }
@@ -96,14 +112,30 @@ export default function AddTimePage() {
   const onDayChange = (text: string) => {
     setDay(text);
   };
+  const onEventChange = (text: string) => {
+    setEvent(text);
+  };
 
   const handleConfirm = () => {
     if (year == '0000' || month == '00' || day == '00') {
       Alert.alert("提示", "请输入日期");
       return;
     }
-    console.log(year, month, day, hour, minute);
-    router.push(`/(timingSet)/timingSet?year=${year}&month=${month}&day=${day}&hour=${hour}&minute=${minute}`)
+    // console.log(year, month, day, hour, minute);
+
+    const data : TimeData = {
+      selectedLabel: selectedLabel,
+      selectedDays: selectedDays,
+      event: event,
+      hour: hour,
+      minute: minute,
+      year: year,
+      month: month,
+      day: day,
+    }
+
+    const encodedData = encodeURIComponent(JSON.stringify(data));
+    router.push(`/(timingSet)/timingSet?data=${encodedData}`)  
   };
 
   return (
@@ -163,7 +195,7 @@ export default function AddTimePage() {
               <Text style={style.labelText}>事件</Text>
             </View>
             <View style={style.inputView}>
-              <TextInput style={style.inputText} placeholder="请输入事件" />
+              <TextInput style={style.inputText} value={event} onChangeText={onEventChange} placeholder="请输入事件" />
             </View>
           </View>
           <View style={style.contentSetterContainer}>
