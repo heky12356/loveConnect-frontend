@@ -38,6 +38,10 @@ const handleStudyPagePress = () => {
   router.push("/(studyPage)/studyPage");
 };
 
+const handleFriendPress = () => {
+  router.push("/(friendPage)/friendPage");
+};
+
 export default function Index() {
   const [isFirstAttention, setIsFirstAttention] = useFirstAttention();
 
@@ -123,7 +127,7 @@ export default function Index() {
               backgroudColor="#FFCDCD"
             />
             <BigButton
-              onPress={handlePress}
+              onPress={handleFriendPress}
               label={"好友群组"}
               icon={
                 <Feather name="users" size={GlobalFontSize} color="black" />
