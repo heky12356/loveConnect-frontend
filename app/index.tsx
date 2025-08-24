@@ -9,7 +9,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React from "react";
-import { Dimensions, StyleSheet, View } from "react-native";
+import { Alert, Dimensions, Linking, StyleSheet, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 
@@ -42,6 +42,29 @@ const handleFriendPress = () => {
   router.push("/(friendPage)/friendPage");
 };
 
+const handlePhonePress = async () => {
+  // 后面需要修改下逻辑，获取电话号
+  const phoneNumber = '10000100000';
+  const makePhoneCall = async () => {
+    const phoneUrl = `tel:${phoneNumber}`;
+    try {
+      // 检查设备是否支持电话功能
+      const supported = await Linking.canOpenURL(phoneUrl);
+      
+      if (supported) {
+        // 打开电话应用
+        await Linking.openURL(phoneUrl);
+      } else {
+        Alert.alert('错误', '您的设备不支持电话功能');
+      }
+    } catch (error) {
+      Alert.alert('错误', '无法打开电话应用');
+      console.error('电话拨打错误:', error);
+    }
+  }
+  makePhoneCall();
+};
+
 export default function Index() {
   const [isFirstAttention, setIsFirstAttention] = useFirstAttention();
 
@@ -71,7 +94,7 @@ export default function Index() {
             }}
           >
             <BigButton
-              onPress={handlePress}
+              onPress={handlePhonePress}
               label={"一键呼出"}
               icon={
                 <Foundation
