@@ -1,6 +1,6 @@
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { router } from "expo-router";
-import { Dimensions, Pressable, StyleSheet, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet } from "react-native";
 const { height, width } = Dimensions.get("window");
 
 const handleReturn = (path?: string) => {
@@ -21,11 +21,9 @@ type Prop = {
 
 export default function ReturnButton({path}: Prop) {
   return (
-    <Pressable onPress={() => handleReturn(path)}>
-      <View style={style.returnButton}>
+      <Pressable style={style.returnButton} onPress={() => handleReturn(path)}>
         <AntDesign name="left" size={iconStyle} color="white" />
-      </View>
-    </Pressable>
+      </Pressable>
   );
 }
 
