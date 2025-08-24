@@ -1,8 +1,10 @@
 import ReturnButton from "@/components/returnButton";
+import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from "@expo/vector-icons/Feather";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import { useState } from "react";
-import { Dimensions, StyleSheet, Text, TextInput, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 const iconStyle = width * 0.1;
@@ -12,6 +14,16 @@ const IsSetter = () => {
         <View style={style.IsSetterView}>
             <View style={style.smailTailButton}></View>
         </View>
+    )
+}
+
+const IsCircle = () => {
+    return (
+        <Pressable onPress={() => {
+          router.push("/(timingSet)/SetCirclePage");
+        }}>
+            <AntDesign name="rightcircleo" size={iconStyle * 1.1} color="black" />
+        </Pressable>
     )
 }
 
@@ -106,7 +118,7 @@ export default function AddTimePage() {
             <View style={style.longLableView}>
               <Text style={style.labelText}>是否重复</Text>
             </View>
-            <IsSetter />
+            <IsCircle />
           </View>
         </View>
         <View style={style.returnButton}>
