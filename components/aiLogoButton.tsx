@@ -5,7 +5,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  View,
 } from "react-native";
 
 type Prop = {
@@ -28,7 +27,7 @@ const handleAiPress = ({
       pathname: "/(aiPage)/firstAttentionPage",
     });
   } else {
-    router.push("/(aiPage)/aiPage");
+    router.push("/(aiListPage)/aiListPage");
   }
 };
 
@@ -39,16 +38,15 @@ export default function AiLogoButton({
 }: Prop) {
   return (
     <Pressable
+      style={[styles.container]}
       onPress={() => handleAiPress({ isFirstAttention, setIsFirstAttention })}
     >
-      <View style={[styles.container]}>
-        <ImageBackground
-          source={require("../assets/images/logo.png")}
-          style={styles.backgroundImage}
-          resizeMode="contain"
-        ></ImageBackground>
-        <Text style={styles.text}>{label}</Text>
-      </View>
+      <ImageBackground
+        source={require("../assets/images/logo.png")}
+        style={styles.backgroundImage}
+        resizeMode="contain"
+      ></ImageBackground>
+      <Text style={styles.text}>{label}</Text>
     </Pressable>
   );
 }

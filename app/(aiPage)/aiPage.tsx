@@ -2,7 +2,8 @@ import AiChatButtons from "@/components/aiChatButtons";
 import ReqChatItem from "@/components/reqChatItem";
 import ReqpChatItem from "@/components/reqpChatItem";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 
 import {
   Dimensions,
@@ -10,25 +11,43 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 const profileimg = require("@/assets/images/profile.png");
 
-const Profile = () => {
+const Profile = ({img}: {img?: string}) => {
   return (
     <View style={style.profileImgBox}>
-      <Image source={profileimg} resizeMode="cover" style={style.profileImg} />
+      <Image source={img?{uri: img}:profileimg} resizeMode="cover" style={style.profileImg} />
     </View>
   );
 };
 
 const handleTitlePress = () => {
-    router.push("/aiListPage");
+  router.push("/aiListPage");
 };
 
 export default function AiPage() {
+  const [name, setName] = useState("");
+  const [profileImg, setProfileImg] = useState<string>();
+
+  const info = useLocalSearchParams<{
+    data: string;
+  }>();
+
+  useEffect(() => {
+    console.log(info);
+    if (info.data) {
+      const data = JSON.parse(decodeURIComponent(info.data));
+      setName(data.name);
+      if (data.img) {
+        setProfileImg(data.img);
+      }
+    }
+  }, []);
+
   return (
     <LinearGradient
       colors={["#FFD0D0", "#EDFFB8", "#FFFFFF", "#FFCBCB"]}
@@ -42,18 +61,18 @@ export default function AiPage() {
       <View style={style.container}>
         <Pressable onPress={handleTitlePress}>
           <View style={style.title}>
-            <Text style={style.titleText}>女儿</Text>
+            <Text style={style.titleText}>{name}</Text>
           </View>
         </Pressable>
         <View style={style.profile}>
-          <Profile />
+          <Profile img={profileImg} />
         </View>
         <View style={style.content}>
           <ReqpChatItem time="12:00" />
           <ReqChatItem time="12:01" />
         </View>
         <View style={style.buttons}>
-          <AiChatButtons path="/" />
+          <AiChatButtons />
         </View>
       </View>
     </LinearGradient>

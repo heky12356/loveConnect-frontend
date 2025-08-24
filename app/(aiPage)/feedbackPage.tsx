@@ -33,7 +33,7 @@ export default function FeedbackPage() {
         </View>
       </View>
       <View style={styles.returnButton}>
-        <ReturnButton path="/aiPage"/>
+        <ReturnButton path="/(aiListPage)/aiListPage"/>
       </View>
     </View>
     </LinearGradient>

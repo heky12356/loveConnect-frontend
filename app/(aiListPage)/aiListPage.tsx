@@ -1,18 +1,21 @@
-import AiChatButtons from "@/components/aiChatButtons";
 import AiListAddItemButton from "@/components/aiListAddItemButton";
 import AiListItem from "@/components/aiListItem";
+import ReturnButton from "@/components/returnButton";
+import { useImg } from "@/hook/useImg";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Dimensions, StyleSheet, View } from "react-native";
 const { width, height } = Dimensions.get("window");
-
-const exampleImg = require("@/assets/images/profile.png");
 
 const handleAddItemPress = () => {
   router.push("/addAiPage");
 };
 
 export default function AiListPage() {
+  const exampleImg = useImg().getImg("001");
+  // const exampleImg = require(ImgUri);
+  // console.log(exampleImg);
+
   return (
     <LinearGradient
       colors={["#FFD0D0", "#EDFFB8", "#FFFFFF", "#FFCBCB"]}
@@ -30,8 +33,8 @@ export default function AiListPage() {
           <AiListItem name="儿媳妇" />
           <AiListAddItemButton onPress={handleAddItemPress} />
         </View>
-        <View style={styles.buttons}>
-          <AiChatButtons />
+        <View style={styles.returnButton}>
+          <ReturnButton path="/" />
         </View>
       </View>
     </LinearGradient>
@@ -57,11 +60,13 @@ const styles = StyleSheet.create({
     // backgroundColor: "orange",
     gap: height * 0.03,
   },
-  buttons: {
-    height: height * 0.2,
+  returnButton: {
+    height: height * 0.13,
     width: width,
     justifyContent: "center",
-    alignItems: "center",
-    // backgroundColor: "blue",
+    // alignItems: "center",
+    // backgroundColor: "orange",
+    paddingLeft: width * 0.05,
+    paddingBottom: height * 0.03,
   },
 });

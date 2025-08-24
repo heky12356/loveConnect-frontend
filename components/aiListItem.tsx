@@ -1,19 +1,35 @@
-import { Dimensions, Image, ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 const { width, height } = Dimensions.get("window");
 
 type Prop = {
     name?: string;
-    img?: ImageSourcePropType;
+    img?: string;
     postNum?: number;
 }
 
+
+interface AiListItemProps {
+    name?: string;
+    img?: string;
+}
+
 export default function AiListItem({name, img, postNum}: Prop) {
+    const handlePress = () => {
+        const data : AiListItemProps = {
+            name,
+            img,
+        }
+        const encodedData = encodeURIComponent(JSON.stringify(data));
+        router.push(`/(aiPage)/aiPage?data=${encodedData}`)
+    }
+
     return (
         <View style={styles.container}>
-            <View style={styles.viewBox}>
+            <Pressable style={styles.viewBox} onPress={handlePress}>
                 <View style={styles.profile}>
-                    <Image source={img} style={styles.profileImg} />
+                    <Image source={{uri: img}} style={styles.profileImg} />
                 </View>
                 <View style={styles.name}>
                     <Text style={styles.nameText}>{name?name:"name"}</Text>
@@ -23,7 +39,7 @@ export default function AiListItem({name, img, postNum}: Prop) {
                     <Text style={styles.postNum}>{postNum}</Text>
                 </View>
                 :null}
-            </View>
+            </Pressable>
         </View>
     )
 }
@@ -42,8 +58,9 @@ const styles = StyleSheet.create({
         height: height * 0.12,
         width: width * 0.85,
         alignItems: "center",
-        backgroundColor: "#E1EAFF",
+        backgroundColor: "white",
         borderRadius: width * 0.05,
+        boxShadow: "0 8px 0 -4px rgba(0, 0, 0, 0.1), 0 8px 20px rgba(0, 0, 0, 0.15)",
         gap: width * 0.08,
     }, 
     profile: {
@@ -51,7 +68,7 @@ const styles = StyleSheet.create({
         width: height * 0.11,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "white",
+        backgroundColor: "#FFB2B2",
         borderRadius: height * 0.11,
         marginLeft: width * 0.02,
     },

@@ -1,5 +1,6 @@
 import AiListItem from "@/components/aiListItem";
 import ReturnButton from "@/components/returnButton";
+import { useImg } from "@/hook/useImg";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { LinearGradient } from "expo-linear-gradient";
@@ -8,7 +9,7 @@ import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 const GlobalFontSize = width * 0.3;
-const exampleImg = require("@/assets/images/profile.png");
+const exampleImg = useImg().getImg("001");
 
 export default function MsgPage() {
   return (

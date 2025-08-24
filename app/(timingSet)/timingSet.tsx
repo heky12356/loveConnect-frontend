@@ -11,50 +11,6 @@ import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 const { height, width } = Dimensions.get("window");
 const iconStyle = width * 0.1;
 
-interface Item {
-  title: string;
-  time: string;
-}
-
-const Items = [
-  {
-    title: "起床",
-    time: "8:00",
-  },
-  {
-    title: "起床",
-    time: "8:00",
-  },
-  {
-    title: "起床",
-    time: "8:00",
-  },
-  {
-    title: "起床",
-    time: "8:00",
-  },
-  {
-    title: "起床",
-    time: "8:00",
-  },
-  {
-    title: "起床",
-    time: "8:00",
-  },
-  {
-    title: "起床",
-    time: "8:00",
-  },
-  {
-    title: "起床",
-    time: "8:00",
-  },
-  {
-    title: "起床",
-    time: "8:00",
-  },
-]
-
 export default function TimingSet() {
   const { items, addItem } = useTimeItem();
 
@@ -62,7 +18,7 @@ export default function TimingSet() {
     data: string;
   }>();
   useEffect(() => {
-    console.log(params?.data);
+    // console.log(params?.data);
     if (params?.data) {
       const data = JSON.parse(decodeURIComponent(params.data));
       // console.log(data.event);

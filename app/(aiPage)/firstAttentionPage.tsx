@@ -17,7 +17,7 @@ const handleFirstAttention = ({
 }) => {
   //   console.log(isFirstAttention);
   setIsFirstAttention(false);
-  router.push("/aiPage");
+  router.push("/(aiListPage)/aiListPage");
 };
 
 const handleFeedback = ({
