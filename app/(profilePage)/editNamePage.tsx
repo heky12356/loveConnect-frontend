@@ -1,4 +1,7 @@
+import { getInfoManager } from "@/api/infoManeger";
 import ReturnButton from "@/components/returnButton";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Dimensions,
   Pressable,
@@ -9,8 +12,17 @@ import {
 } from "react-native";
 
 const { height, width } = Dimensions.get("window");
+const infoManager = getInfoManager();
 
 export default function EditNamePage() {
+  const [name, setName] = useState("");
+  const params = useLocalSearchParams();
+  useEffect(() => {
+    if (params.name) {
+      setName(params.name as string);
+      console.log(params.name);
+    }
+  }, []);
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
       <View style={styles.container}>
@@ -22,9 +34,10 @@ export default function EditNamePage() {
           <View style={styles.inputSection}>
             <TextInput
               style={styles.textInput}
-              placeholder="李业伟"
+              placeholder={name}
               placeholderTextColor="#999"
-              defaultValue="李业伟"
+              defaultValue={name}
+              onChangeText={setName}
             />
           </View>
         </View>
@@ -34,7 +47,10 @@ export default function EditNamePage() {
             <View style={styles.returnButtonWrapper}>
               <ReturnButton />
             </View>
-            <Pressable style={styles.confirmButton}>
+            <Pressable style={styles.confirmButton} onPress={async () => {
+              await infoManager.updateName(name);
+              router.back();
+            }}>
               <Text style={styles.confirmButtonText}>确定</Text>
             </Pressable>
           </View>

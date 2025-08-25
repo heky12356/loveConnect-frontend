@@ -1,16 +1,88 @@
+import { getInfoManager } from "@/api/infoManeger";
 import ReturnButton from "@/components/returnButton";
 import EvilIcons from '@expo/vector-icons/EvilIcons';
+import * as Location from 'expo-location';
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-  Dimensions,
+  ActivityIndicator,
+  Alert, Dimensions,
   Pressable,
   StyleSheet,
   Text,
-  View,
-} from "react-native";
+  View
+} from 'react-native';
 
 const { height, width } = Dimensions.get("window");
+const infoManager = getInfoManager();
+
+const LoadingIndicator = () => {
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#FFDEE2" />
+    </View>
+  );
+};
 
 export default function EditLocationPage() {
+  const [selectedLocation, setSelectedLocation] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const params = useLocalSearchParams();
+
+  useEffect(() => {
+    if (params.address) {
+      setSelectedLocation(params.address as string);
+    }
+  }, []);
+
+  const getCurrentLocation = async () => {
+  try {
+    setIsLoading(true);
+    
+    // 1. 请求位置权限
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('权限被拒绝', '需要位置权限才能获取当前位置');
+      return;
+    }
+
+    // 2. 获取当前位置坐标
+    const location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+    // console.log(location);
+
+    const { latitude, longitude } = location.coords;
+
+    // 3. 逆地理编码 - 将坐标转换为地址
+    const reverseGeocode = await Location.reverseGeocodeAsync({
+      latitude,
+      longitude,
+    });
+
+    if (reverseGeocode.length > 0) {
+      const address = reverseGeocode[0];
+      // 4. 组合地址字符串
+      const fullAddress = [
+        address.country,
+        address.region,
+        address.city,
+        address.district,
+        // address.street,
+        // address.streetNumber
+      ].filter(Boolean).join('');
+      
+      // 5. 更新状态
+      setSelectedLocation(fullAddress || '无法获取详细地址');
+    }
+  } catch (error) {
+    console.error('获取位置失败:', error);
+    Alert.alert('获取位置失败', '请检查网络连接或稍后重试');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
       <View style={styles.container}>
@@ -24,19 +96,24 @@ export default function EditLocationPage() {
               <Text style={styles.currentLocationLabel}>当前位置</Text>
             </View>
             
-            <Pressable style={styles.locationItem}>
-              <Text style={styles.locationText}>布吉岛</Text>
+            <Pressable style={styles.locationItem} onPress={getCurrentLocation}>
+              <Text style={styles.locationText}>{selectedLocation}</Text>
               <EvilIcons name="location" size={width * 0.07} color="black" />
             </Pressable>
           </View>
         </View>
-
+        {isLoading && <LoadingIndicator />}
         <View style={styles.bottomSection}>
           <View style={styles.buttonContainer}>
             <View style={styles.returnButtonWrapper}>
               <ReturnButton />
             </View>
-            <Pressable style={styles.confirmButton}>
+            <Pressable style={styles.confirmButton} onPress={
+              async () => {
+                await infoManager.updateAddress(selectedLocation);
+                router.back();
+              }
+            }>
               <Text style={styles.confirmButtonText}>确定</Text>
             </Pressable>
           </View>
@@ -127,5 +204,15 @@ const styles = StyleSheet.create({
     fontSize: width * 0.06,
     lineHeight: width * 0.17,
     color: "#333",
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    // backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
 });

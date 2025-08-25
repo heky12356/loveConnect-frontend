@@ -1,5 +1,8 @@
 import ReturnButton from "@/components/returnButton";
+import { useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import {
+  Alert,
   Dimensions,
   Pressable,
   StyleSheet,
@@ -10,6 +13,13 @@ import {
 const { height, width } = Dimensions.get("window");
 
 export default function EditPhonePage() {
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const params = useLocalSearchParams();
+  useEffect(() => {
+    if (params.phone) {
+      setPhoneNumber(params.phone as string);
+    }
+  }, []);
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
       <View style={styles.container}>
@@ -21,10 +31,12 @@ export default function EditPhonePage() {
           <View style={styles.phoneSection}>
             <View style={styles.currentPhoneContainer}>
               <Text style={styles.currentPhoneLabel}>已绑定手机号：</Text>
-              <Text style={styles.currentPhoneNumber}>12345345</Text>
+              <Text style={styles.currentPhoneNumber}>{phoneNumber}</Text>
             </View>
             
-            <Pressable style={styles.changePhoneButton}>
+            <Pressable style={styles.changePhoneButton} onPress={() => {
+              Alert.alert("更换手机号", "暂时不支持本地修改，请联系管理员，抱歉~");
+            }}>
               <Text style={styles.changePhoneButtonText}>更换手机号</Text>
             </Pressable>
           </View>

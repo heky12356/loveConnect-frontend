@@ -1,6 +1,6 @@
-import EvilIcons from "@expo/vector-icons/EvilIcons";
-import Feather from "@expo/vector-icons/Feather";
+import { ChangeFlag, getInfoManager } from "@/api/infoManeger";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -13,27 +13,39 @@ import {
 } from "react-native";
 const { height, width } = Dimensions.get("window");
 const img: ImageSourcePropType = require('@/assets/images/avaretor_example.png')
+const infoManager = getInfoManager();
 
 type Prop = {
   style?: ViewStyle;
 };
 
 export default function NavBar({ style }: Prop) {
+  const [profileImg, setProfileImg] = useState("");
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    // console.log("NavBar useEffect");
+    infoManager.getInfo().then((info) => {
+      setProfileImg(info.avatar);
+      setUserName(info.name);
+    })
+  }, [ChangeFlag]);
+
   return (
     <View style={[styles.navbar, style]}>
       <View style={styles.avatar}>
         <Image
-          source={img}
+          source={{ uri: profileImg }}
           style={{
-            width: width * 0.15,
-            height: width * 0.15,
-            borderRadius: width * 0.075,
+            width: width * 0.14,
+            height: width * 0.14,
+            borderRadius: width * 0.14,
           }}
         />
       </View>
       <View style={styles.content}>
         <View>
-          <Text style={styles.userName}>用户名</Text>
+          <Text style={styles.userName}>{userName}</Text>
         </View>
         <Pressable onPress={() => {
           router.push("/profilePage")
@@ -41,7 +53,7 @@ export default function NavBar({ style }: Prop) {
           <Text>点击切换/更改资料</Text>
         </Pressable>
       </View>
-      <View style={styles.util}>
+      {/* <View style={styles.util}>
         <EvilIcons
           name="search"
           size={30}
@@ -54,7 +66,7 @@ export default function NavBar({ style }: Prop) {
           color="black"
           style={{ marginTop: 0 }}
         />
-      </View>
+      </View> */}
     </View>
   );
 }
@@ -72,11 +84,13 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.05,
   },
   avatar: {
+    justifyContent: "center",
+    alignItems: "center",
     marginLeft: width * 0.05,
     width: width * 0.15,
     height: width * 0.15,
-    borderRadius: width * 0.075,
-    // backgroundColor: "red",
+    borderRadius: width * 0.15,
+    backgroundColor: "white",
   },
   content: {
     // alignItems: "center",

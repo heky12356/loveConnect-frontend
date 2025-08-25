@@ -1,20 +1,23 @@
+import { getInfoManager } from "@/api/infoManeger";
 import ReturnButton from "@/components/returnButton";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-    Dimensions,
-    Image,
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  Dimensions,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 const profileImg = require("@/assets/images/profile.png");
+const infoManager = getInfoManager();
 
 const ProfileItem = ({ label, value, showArrow = true, onPress }: { label: string; value: string; showArrow?: boolean; onPress?: () => void }) => {
   return (
@@ -32,6 +35,28 @@ const ProfileItem = ({ label, value, showArrow = true, onPress }: { label: strin
 
 export default function ProfilePage() {
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
+  const [info, setInfo] = useState<any>({});
+  const [selectedYear, setSelectedYear] = useState(1990);
+  const [selectedMonth, setSelectedMonth] = useState(1);
+  const [selectedDay, setSelectedDay] = useState(1);
+  
+  // 生成年份数组 (1950-2024)
+  const years = Array.from({ length: 75 }, (_, i) => 1950 + i);
+  // 生成月份数组 (1-12)
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  // 根据年月生成天数数组
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month, 0).getDate();
+  };
+  const days = Array.from({ length: getDaysInMonth(selectedYear, selectedMonth) }, (_, i) => i + 1);
+
+  useEffect(() => {
+    const fetchInfo = async () => {
+      const info = await infoManager.getInfo();
+      setInfo(info);
+    }
+    fetchInfo();
+  }, []);
 
   return (
     <LinearGradient
@@ -50,30 +75,30 @@ export default function ProfilePage() {
         
         <View style={styles.avatarSection}>
           <View style={styles.avatarContainer}>
-            <Image source={profileImg} resizeMode="cover" style={styles.avatar} />
+            <Image source={{uri: info.avatar}} resizeMode="cover" style={styles.avatar} />
           </View>
           <MaterialIcons name="photo-camera" size={width * 0.06} color="#666" style={styles.cameraIcon} />
         </View>
 
         <View style={styles.profileInfo}>
-          <ProfileItem label="姓名" value="李业伟" onPress={() => {
-            router.push("/(profilePage)/editNamePage")
+          <ProfileItem label="姓名" value={info.name} onPress={() => {
+            router.push(`/(profilePage)/editNamePage?name=${info.name}`)
           }} />
-          <ProfileItem label="性别" value="男" onPress={() => {
-            router.push("/(profilePage)/editGenderPage")
+          <ProfileItem label="性别" value={info.gender} onPress={() => {
+            router.push(`/(profilePage)/editGenderPage?gender=${info.gender}`)
           }} />
-          <ProfileItem label="生日" value="2月30日" onPress={() => setShowBirthdayModal(true)} />
-          <ProfileItem label="手机号" value="13800000000" onPress={() => {
-            router.push("/(profilePage)/editPhonePage")
+          <ProfileItem label="生日" value={info.date || "请选择生日"} onPress={() => setShowBirthdayModal(true)} />
+          <ProfileItem label="手机号" value={info.phone} onPress={() => {
+            router.push(`/(profilePage)/editPhonePage?phone=${info.phone}`)
           }} />
-          <ProfileItem label="所在地址" value="李业伟" onPress={() => {
-            router.push("/(profilePage)/editLocationPage")
+          <ProfileItem label="所在地址" value={info.address} onPress={() => {
+            router.push(`/(profilePage)/editLocationPage?address=${info.address}`)
           }} />
         </View>
 
-        <Pressable style={styles.editButton}>
+        {/* <Pressable style={styles.editButton}>
           <Text style={styles.editButtonText}>更改资料</Text>
-        </Pressable>
+        </Pressable> */}
 
         <View style={styles.returnButton}>
           <ReturnButton />
@@ -96,13 +121,121 @@ export default function ProfilePage() {
               <Text style={styles.birthdayTitle}>生日</Text>
               <Pressable 
                 style={styles.confirmButton}
-                onPress={() => setShowBirthdayModal(false)}
+                onPress={async () => {
+                  // 保存选中的日期到 info 状态
+                  const selectedDate = `${selectedYear}年${selectedMonth}月${selectedDay}日`;
+                  await infoManager.updateDate(selectedDate);
+                  const info = await infoManager.getInfo();
+                  setInfo(info);
+                  setShowBirthdayModal(false);
+                }}
               >
                 <Text style={styles.confirmButtonText}>确定</Text>
               </Pressable>
             </View>
             <View style={styles.birthdaySelector}>
-              <Text style={styles.birthdayText}>1980 年  2  月  30 日</Text>
+              <View style={styles.pickerContainer}>
+                {/* 年份选择器 */}
+                <View style={styles.pickerColumn}>
+                  <Text style={styles.pickerLabel}>年</Text>
+                  <ScrollView 
+                    style={styles.picker}
+                    showsVerticalScrollIndicator={false}
+                    snapToInterval={40}
+                    decelerationRate="fast"
+                  >
+                    {years.map((year) => (
+                      <Pressable
+                        key={year}
+                        style={[
+                          styles.pickerItem,
+                          selectedYear === year && styles.selectedPickerItem
+                        ]}
+                        onPress={() => setSelectedYear(year)}
+                      >
+                        <Text style={[
+                          styles.pickerItemText,
+                          selectedYear === year && styles.selectedPickerItemText
+                        ]}>
+                          {year}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+                
+                {/* 月份选择器 */}
+                <View style={styles.pickerColumn}>
+                  <Text style={styles.pickerLabel}>月</Text>
+                  <ScrollView 
+                    style={styles.picker}
+                    showsVerticalScrollIndicator={false}
+                    snapToInterval={40}
+                    decelerationRate="fast"
+                  >
+                    {months.map((month) => (
+                      <Pressable
+                        key={month}
+                        style={[
+                          styles.pickerItem,
+                          selectedMonth === month && styles.selectedPickerItem
+                        ]}
+                        onPress={() => {
+                          setSelectedMonth(month);
+                          // 如果当前选中的日期超过了新月份的最大天数，则调整日期
+                          const maxDays = getDaysInMonth(selectedYear, month);
+                          if (selectedDay > maxDays) {
+                            setSelectedDay(maxDays);
+                          }
+                        }}
+                      >
+                        <Text style={[
+                          styles.pickerItemText,
+                          selectedMonth === month && styles.selectedPickerItemText
+                        ]}>
+                          {month}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+                
+                {/* 日期选择器 */}
+                <View style={styles.pickerColumn}>
+                  <Text style={styles.pickerLabel}>日</Text>
+                  <ScrollView 
+                    style={styles.picker}
+                    showsVerticalScrollIndicator={false}
+                    snapToInterval={40}
+                    decelerationRate="fast"
+                  >
+                    {days.map((day) => (
+                      <Pressable
+                        key={day}
+                        style={[
+                          styles.pickerItem,
+                          selectedDay === day && styles.selectedPickerItem
+                        ]}
+                        onPress={() => setSelectedDay(day)}
+                      >
+                        <Text style={[
+                          styles.pickerItemText,
+                          selectedDay === day && styles.selectedPickerItemText
+                        ]}>
+                          {day}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+              
+              {/* 显示选中的日期 */}
+              <View style={styles.selectedDateContainer}>
+                <Text style={styles.selectedDateText}>
+                  {selectedYear} 年 {selectedMonth} 月 {selectedDay} 日
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -275,12 +408,59 @@ const styles = StyleSheet.create({
     borderRadius: width * 0.03,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: height * 0.1,
+    minHeight: height * 0.35,
+    paddingVertical: height * 0.02,
   },
-  birthdayText: {
-     fontSize: width * 0.06,
-     color: "#333",
-     fontWeight: "500",
-     letterSpacing: 2,
-   },
+  pickerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "flex-start",
+    width: "100%",
+    height: height * 0.25,
+  },
+  pickerColumn: {
+    flex: 1,
+    alignItems: "center",
+  },
+  pickerLabel: {
+    fontSize: width * 0.04,
+    color: "#666",
+    fontWeight: "500",
+    marginBottom: height * 0.01,
+  },
+  picker: {
+    height: height * 0.2,
+    width: width * 0.2,
+  },
+  pickerItem: {
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: width * 0.02,
+  },
+  selectedPickerItem: {
+    backgroundColor: "#FFDEE2",
+    borderRadius: width * 0.02,
+  },
+  pickerItemText: {
+    fontSize: width * 0.045,
+    color: "#666",
+  },
+  selectedPickerItemText: {
+    color: "#333",
+    fontWeight: "600",
+  },
+  selectedDateContainer: {
+    marginTop: height * 0.02,
+    paddingVertical: height * 0.01,
+    paddingHorizontal: width * 0.04,
+    backgroundColor: "#F5F5F5",
+    borderRadius: width * 0.02,
+  },
+  selectedDateText: {
+    fontSize: width * 0.05,
+    color: "#333",
+    fontWeight: "600",
+    textAlign: "center",
+  },
 });

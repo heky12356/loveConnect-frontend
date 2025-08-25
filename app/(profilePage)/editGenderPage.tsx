@@ -1,5 +1,7 @@
+import { getInfoManager } from "@/api/infoManeger";
 import ReturnButton from "@/components/returnButton";
-import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Dimensions,
   Pressable,
@@ -9,9 +11,18 @@ import {
 } from "react-native";
 
 const { height, width } = Dimensions.get("window");
+const infoManager = getInfoManager();
 
 export default function EditGenderPage() {
   const [selectedGender, setSelectedGender] = useState("男");
+  const params = useLocalSearchParams();
+
+  useEffect(() => {
+    if (params.gender) {
+      // console.log(params)
+      setSelectedGender(params.gender as string);
+    }
+  }, [params.gender]);
 
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
@@ -59,7 +70,10 @@ export default function EditGenderPage() {
             <View style={styles.returnButtonWrapper}>
               <ReturnButton />
             </View>
-            <Pressable style={styles.confirmButton}>
+            <Pressable style={styles.confirmButton} onPress={async () => {
+              await infoManager.updateGender(selectedGender);
+              router.back();
+            }}>
               <Text style={styles.confirmButtonText}>确定</Text>
             </Pressable>
           </View>
@@ -113,7 +127,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   radioButton: {
-    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
     width: width * 0.06,
     height: width * 0.06,
     borderRadius: width * 0.03,
@@ -122,14 +137,11 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   radioButtonSelected: {
-    position: "absolute",
-    top: width * 0.003,
-    left: width * 0.002,
     width: width * 0.04,
     height: width * 0.04,
     borderRadius: width * 0.03,
     backgroundColor: "#FEADB4",
-    borderColor: "#DDD",
+    // borderColor: "#DDD",
   },
   separator: {
     height: 1,
