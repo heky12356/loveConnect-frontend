@@ -1,6 +1,8 @@
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
-import { Dimensions, StyleSheet, Text, View } from "react-native";
+import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
+import { Audio } from 'expo-av';
+import { Alert, Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 
@@ -8,14 +10,45 @@ const iconSize = width * 0.1
 
 type Prop = {
     time?: string,
+    uri?: string;
+    text?: string;
 }
 
-export default function ReqpChatItem({time} : Prop) {
+export default function ReqpChatItem({time, uri, text} : Prop) {
+    const playAudio = async () => {
+        if (!uri) return;
+        
+        try {
+            const { sound } = await Audio.Sound.createAsync({ uri });
+            await sound.playAsync();
+            
+            sound.setOnPlaybackStatusUpdate((status) => {
+                if (status.isLoaded && status.didJustFinish) {
+                    sound.unloadAsync();
+                }
+            });
+        } catch (error) {
+            console.error('播放音频失败:', error);
+            Alert.alert('错误', '播放音频失败');
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.viewBox}>
-                <AntDesign name="sound" size={iconSize} color="black" />
-                <Feather name="more-horizontal" size={iconSize} color="black" />
+                {uri ? (
+                     <Pressable onPress={playAudio} style={styles.audioContainer}>
+                         <SimpleLineIcons name="control-play" size={20} color="black" />
+                         <Text style={styles.audioText}>点击播放语音</Text>
+                     </Pressable>
+                 ) : text ? (
+                     <Text style={styles.text}>{text}</Text>
+                 ) : (
+                     <>
+                         <AntDesign name="sound" size={iconSize} color="black" />
+                         <Feather name="more-horizontal" size={iconSize} color="black" />
+                     </>
+                 )}
             </View>
             <View style={styles.time}>
                 <Text style={styles.timeText}>
@@ -56,6 +89,20 @@ const styles = StyleSheet.create({
     timeText: {
         fontSize: width * 0.04,
         color: '#545454',
-    }
+    },
+    audioContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: width * 0.02,
+    },
+    audioText: {
+         fontSize: width * 0.035,
+         color: 'black',
+     },
+     text: {
+         fontSize: width * 0.035,
+         color: 'black',
+         paddingHorizontal: width * 0.03,
+     }
 })
 

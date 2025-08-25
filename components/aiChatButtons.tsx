@@ -8,13 +8,14 @@ const { width } = Dimensions.get("window");
 
 type Prop = {
     path?: string;
+    onRecordingComplete?: (uri: string) => void;
 }
 
-export default function AiChatButtons({path}: Prop) {
+export default function AiChatButtons({path, onRecordingComplete}: Prop) {
     return (
         <View style={styles.container}>
             <ReturnButton path={path} />
-            <CircleButton />
+            <CircleButton onRecordingComplete={onRecordingComplete} />
             <TextButton />
         </View>
     )

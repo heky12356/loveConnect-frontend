@@ -1,3 +1,4 @@
+import { msgManager } from "@/api/msgManager";
 import AiChatButtons from "@/components/aiChatButtons";
 import ReqChatItem from "@/components/reqChatItem";
 import ReqpChatItem from "@/components/reqpChatItem";
@@ -9,18 +10,23 @@ import {
   Dimensions,
   Image,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 const profileimg = require("@/assets/images/profile.png");
 
-const Profile = ({img}: {img?: string}) => {
+const Profile = ({ img }: { img?: string }) => {
   return (
     <View style={style.profileImgBox}>
-      <Image source={img?{uri: img}:profileimg} resizeMode="cover" style={style.profileImg} />
+      <Image
+        source={img ? { uri: img } : profileimg}
+        resizeMode="cover"
+        style={style.profileImg}
+      />
     </View>
   );
 };
@@ -32,6 +38,7 @@ const handleTitlePress = () => {
 export default function AiPage() {
   const [name, setName] = useState("");
   const [profileImg, setProfileImg] = useState<string>();
+  const [messages, setMessages] = useState<any[]>([]);
 
   const info = useLocalSearchParams<{
     data: string;
@@ -45,8 +52,25 @@ export default function AiPage() {
       if (data.img) {
         setProfileImg(data.img);
       }
+      // 加载该用户的消息
+      loadMessages(data.name);
     }
   }, []);
+
+  const loadMessages = (userName: string) => {
+    const userMessages = msgManager.getMessages(userName);
+    console.log(userMessages);
+    setMessages(userMessages);
+  };
+
+  const handleRecordingComplete = (uri: string) => {
+    if (name) {
+      const newMessage = msgManager.createMessage(uri, "me");
+      // console.log(newMessage);
+      msgManager.addMessage(name, newMessage);
+      loadMessages(name);
+    }
+  };
 
   return (
     <LinearGradient
@@ -68,11 +92,37 @@ export default function AiPage() {
           <Profile img={profileImg} />
         </View>
         <View style={style.content}>
-          <ReqpChatItem time="12:00" />
-          <ReqChatItem time="12:01" />
+          <ScrollView
+            style={style.scrollView}
+            contentContainerStyle={style.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {messages.map((message, index) => {
+              if (message.sender === "other") {
+                return (
+                  <ReqpChatItem
+                    key={index}
+                    time={message.time}
+                    uri={message.uri}
+                    text={message.text}
+                  />
+                );
+              } else {
+                return (
+                  <ReqChatItem
+                    key={index}
+                    time={message.time}
+                    uri={message.uri}
+                    text={message.text}
+                  />
+                );
+              }
+            })}
+            {messages.length === 0 && <ReqpChatItem text="你好噢" />}
+          </ScrollView>
         </View>
         <View style={style.buttons}>
-          <AiChatButtons />
+          <AiChatButtons onRecordingComplete={handleRecordingComplete} />
         </View>
       </View>
     </LinearGradient>
@@ -123,10 +173,18 @@ const style = StyleSheet.create({
     paddingTop: height * 0.03,
     height: height * 0.35,
     width: width,
-    gap: height * 0.01,
-    // justifyContent: "center",
+    // backgroundColor: "green",
     alignItems: "center",
-    // backgroundColor: "red",
+    // justifyContent: "center",
+  },
+  scrollView: {
+    flex: 1,
+    width: width,
+  },
+  scrollContent: {
+    gap: height * 0.01,
+    alignItems: "center",
+    paddingVertical: height * 0.01,
   },
   buttons: {
     height: height * 0.2,
