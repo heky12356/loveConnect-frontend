@@ -1,3 +1,4 @@
+import { getInfoManager } from "@/api/infoManeger";
 import BigButton from "@/components/BigButton";
 import NavBar from "@/components/NavBar";
 import AiLogoButton from "@/components/aiLogoButton";
@@ -12,14 +13,9 @@ import React from "react";
 import { Alert, Dimensions, Linking, StyleSheet, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
-
+const infoManager = getInfoManager();
 const GlobalGap = width * 0.05;
 const GlobalFontSize = width * 0.1;
-
-const handlePress = () => {
-  console.log("Pressed!");
-  router.push("/(about)/about");
-};
 
 const handleTimingSetPress = () => {
   // console.log("TimingSet Pressed!");
@@ -43,8 +39,12 @@ const handleFriendPress = () => {
 };
 
 const handlePhonePress = async () => {
-  // 后面需要修改下逻辑，获取电话号
-  const phoneNumber = '10000100000';
+  // 后面需要修改下逻辑，获取紧急联系人电话
+  const phoneNumber = await infoManager.getUrgentPhone();
+  if (phoneNumber === "") {
+    Alert.alert("错误", "请先联系管理员设置紧急联系人电话");
+    return;
+  }
   const makePhoneCall = async () => {
     const phoneUrl = `tel:${phoneNumber}`;
     try {

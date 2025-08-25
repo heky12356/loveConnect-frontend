@@ -5,10 +5,12 @@ interface Info {
   avatar: string;
   phone: string;
   address: string;
+  urgentPhone: string;
 }
 
 interface InfoManager {
   getInfo: () => Promise<Info>;
+  getUrgentPhone: () => Promise<string>;
   updateInfo: (info: Info) => Promise<void>;
   updateName: (name: string) => Promise<void>;
   updateGender: (gender: string) => Promise<void>;
@@ -25,10 +27,14 @@ let textInfo: Info = {
   avatar: "https://pan.heky.top/tmp/profile.png",
   phone: "114514",
   address: "中国",
+  urgentPhone: "22333",
 };
 
 // 模拟用信息管理器
 class InfoManagerText implements InfoManager {
+  async getUrgentPhone() {
+    return textInfo.urgentPhone;
+  }
   async updateName(name: string) {
     textInfo.name = name;
     ChangeFlag = !ChangeFlag;
