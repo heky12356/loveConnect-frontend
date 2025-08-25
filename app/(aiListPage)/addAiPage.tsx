@@ -1,9 +1,11 @@
 import AiListAddItem from "@/components/aiListAddItem";
+import NextStepButton from "@/components/nextStepButton";
 import ReturnButton from "@/components/returnButton";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import { Dimensions, Image, Pressable, StyleSheet, View } from "react-native";
 
 const { width, height } = Dimensions.get("window");
@@ -11,6 +13,21 @@ const { width, height } = Dimensions.get("window");
 const iconSize = height * 0.11;
 
 export default function AddAiPage() {
+  const [voice, setVoice] = useState<string>("");
+  const [role, setRole] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+
+  const data = useLocalSearchParams<{
+    data: string;
+  }>();
+  useEffect(() => {
+    console.log("data", data);
+    if (data.data) {
+      const uncodeData = JSON.parse(decodeURIComponent(data.data));
+      setVoice(uncodeData.voice);
+    }
+  }, []);
+
   const [selectedImage, setSelectedImage] = useState<string | undefined>(
     undefined
   );
@@ -28,6 +45,19 @@ export default function AddAiPage() {
       alert("你没有选择图片");
     }
   };
+
+  const handleNext = () => {
+    interface Data {
+      role: string;
+      phone: string;
+    }
+    const data: Data = {
+      role: role,
+      phone: phone,
+    };
+    router.push(`/(aiVoiceSetPage)/aiVoiceSetPage?data=${encodeURIComponent(JSON.stringify(data))}`);
+  }
+
   return (
     <LinearGradient
       colors={["#FFD0D0", "#EDFFB8", "#FFFFFF", "#FFCBCB"]}
@@ -49,12 +79,14 @@ export default function AddAiPage() {
           </Pressable>
         </View>
         <View style={styles.content}>
-          <AiListAddItem tag="关系" label="女儿" />
-          <AiListAddItem tag="电话" label="232323" />
-          <AiListAddItem tag="关联青年版" label="是" />
+          <AiListAddItem tag="关系" label="女儿" onchange={setRole} />
+          <AiListAddItem tag="电话" label="232323" onchange={setPhone} onlyNum={true} />
+          {/* <AiListAddItem tag="关联青年版" label="是" newPage={true} path="/(aiListPage)/ConnectWithYoung" /> */}
+          <AiListAddItem tag={voice} label="" newPage={true} path="/(aiListPage)/voiceSetPage" />
         </View>
         <View style={styles.returnButton}>
           <ReturnButton />
+          <NextStepButton onPress={handleNext} />
         </View>
       </View>
     </LinearGradient>
@@ -101,12 +133,15 @@ const styles = StyleSheet.create({
     // backgroundColor: "green",
   },
   returnButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     height: height * 0.13,
     width: width,
-    justifyContent: "center",
+    // justifyContent: "center",
     // alignItems: "center",
     // backgroundColor: "orange",
     paddingLeft: width * 0.05,
+    paddingRight: width * 0.05,
     paddingBottom: height * 0.03,
   },
 });

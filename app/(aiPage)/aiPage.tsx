@@ -38,7 +38,7 @@ export default function AiPage() {
   }>();
 
   useEffect(() => {
-    console.log(info);
+    // console.log(info);
     if (info.data) {
       const data = JSON.parse(decodeURIComponent(info.data));
       setName(data.name);

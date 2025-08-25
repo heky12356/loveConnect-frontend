@@ -1,9 +1,11 @@
+import { getAiManager } from "@/api/aiManeger";
 import AiListAddItemButton from "@/components/aiListAddItemButton";
 import AiListItem from "@/components/aiListItem";
 import ReturnButton from "@/components/returnButton";
 import { useImg } from "@/hook/useImg";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
 const { width, height } = Dimensions.get("window");
 
@@ -12,9 +14,17 @@ const handleAddItemPress = () => {
 };
 
 export default function AiListPage() {
+  const [aiList, setAiList] = useState<any>([]);
   const exampleImg = useImg().getImg("001");
   // const exampleImg = require(ImgUri);
   // console.log(exampleImg);
+  useEffect(() => {
+    async function fetchData() {
+      const data = await getAiManager().getAiList();
+      setAiList(data);
+    }
+    fetchData();
+  }, []);
 
   return (
     <LinearGradient
@@ -28,9 +38,9 @@ export default function AiListPage() {
     >
       <View style={styles.container}>
         <View style={styles.content}>
-          <AiListItem name="女儿" img={exampleImg} />
-          <AiListItem name="儿子" />
-          <AiListItem name="儿媳妇" />
+          {aiList.map((item: any) => (
+            <AiListItem key={item.id} name={item.name} img={item.img} />
+          ))}
           <AiListAddItemButton onPress={handleAddItemPress} />
         </View>
         <View style={styles.returnButton}>
