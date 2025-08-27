@@ -17,7 +17,7 @@ const loadItems = async () => {
 
 loadItems();
 
-imgMap.set("001", "https://pan.heky.top/17d64770e74a442aa93eca1d1cc0a139.jpg");
+imgMap.set("001", "https://pan.heky.top/tmp/profile.png");
 
 export const useImg = () => {
   const addImg = async (key: string, img: string) => {

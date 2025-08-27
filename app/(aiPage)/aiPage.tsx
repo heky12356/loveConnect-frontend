@@ -45,16 +45,22 @@ export default function AiPage() {
   }>();
 
   useEffect(() => {
-    // console.log(info);
-    if (info.data) {
-      const data = JSON.parse(decodeURIComponent(info.data));
-      setName(data.name);
-      if (data.img) {
-        setProfileImg(data.img);
+    const initializeAndLoadMessages = async () => {
+      // 初始化msgManager
+      await msgManager.initialize();
+      
+      if (info.data) {
+        const data = JSON.parse(decodeURIComponent(info.data));
+        setName(data.name);
+        if (data.img) {
+          setProfileImg(data.img);
+        }
+        // 加载该用户的消息
+        loadMessages(data.name);
       }
-      // 加载该用户的消息
-      loadMessages(data.name);
-    }
+    };
+    
+    initializeAndLoadMessages();
   }, []);
 
   const loadMessages = (userName: string) => {
@@ -63,11 +69,11 @@ export default function AiPage() {
     setMessages(userMessages);
   };
 
-  const handleRecordingComplete = (uri: string) => {
+  const handleRecordingComplete = async (uri: string) => {
     if (name) {
       const newMessage = msgManager.createMessage(uri, "me");
       // console.log(newMessage);
-      msgManager.addMessage(name, newMessage);
+      await msgManager.addMessage(name, newMessage);
       loadMessages(name);
     }
   };

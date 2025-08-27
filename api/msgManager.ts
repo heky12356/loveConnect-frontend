@@ -1,3 +1,7 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const STORAGE_KEY = "ChatMap";
+
 // 消息结构体定义
 export interface Message {
   uri?: string; // 语音文件URI
@@ -15,6 +19,18 @@ type ChatMap = Map<string, Message[]>;
  */
 export class msgManager {
   private static chatMap: ChatMap = new Map();
+
+  // 初始化数据加载
+  static async initialize() {
+    try {
+      const storedItems = await AsyncStorage.getItem(STORAGE_KEY);
+      if (storedItems) {
+        this.chatMap = new Map(Object.entries(JSON.parse(storedItems)));
+      }
+    } catch (error) {
+      console.error("加载数据失败:", error);
+    }
+  }
   /**
    * 获取指定用户的消息列表
    * @param name 用户名
@@ -29,18 +45,32 @@ export class msgManager {
    * @param name 用户名
    * @param message 消息对象
    */
-  static addMessage(name: string, message: Message): void {
+  static async addMessage(name: string, message: Message): Promise<void> {
     const messages = this.getMessages(name);
     const newMessages = [...messages, message]; // 创建新数组引用
     this.chatMap.set(name, newMessages);
+    
+    // 持久化到AsyncStorage
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(this.chatMap)));
+    } catch (error) {
+      console.error("保存数据失败:", error);
+    }
   }
 
   /**
    * 清空指定用户的消息
    * @param name 用户名
    */
-  static clearMessages(name: string): void {
+  static async clearMessages(name: string): Promise<void> {
     this.chatMap.delete(name);
+    
+    // 持久化到AsyncStorage
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(this.chatMap)));
+    } catch (error) {
+      console.error("保存数据失败:", error);
+    }
   }
 
   /**
@@ -65,6 +95,9 @@ export class msgManager {
       uri,
       text: "暂时无法转换为文字",
       time: new Date().toLocaleTimeString("zh-CN", {
+        year: "2-digit",
+        month: "2-digit",
+        day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
       }),
