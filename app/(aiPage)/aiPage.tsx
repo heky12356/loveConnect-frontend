@@ -1,10 +1,14 @@
 import { msgManager } from "@/api/msgManager";
+import { AiChatRequest, AiChatResponse, getWebSocketManager } from "@/api/websocketManager";
 import AiChatButtons from "@/components/aiChatButtons";
 import ReqChatItem from "@/components/reqChatItem";
 import ReqpChatItem from "@/components/reqpChatItem";
+import { useWebSocket } from '@/hook/useWebSocket';
+import * as FileSystem from 'expo-file-system';
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Alert } from "react-native";
 
 import {
   Dimensions,
@@ -39,6 +43,9 @@ export default function AiPage() {
   const [name, setName] = useState("");
   const [profileImg, setProfileImg] = useState<string>();
   const [messages, setMessages] = useState<any[]>([]);
+  const [aiRoleId, setAiRoleId] = useState<string>("");
+  const { isConnected } = useWebSocket();
+  const wsManager = useRef(getWebSocketManager());
 
   const info = useLocalSearchParams<{
     data: string;
@@ -52,6 +59,7 @@ export default function AiPage() {
       if (info.data) {
         const data = JSON.parse(decodeURIComponent(info.data));
         setName(data.name);
+        setAiRoleId(data.id || 'default-ai-role');
         if (data.img) {
           setProfileImg(data.img);
         }
@@ -60,7 +68,25 @@ export default function AiPage() {
       }
     };
     
+    // 设置AI回复事件监听器
+    const setupAiResponseListener = () => {
+      const ws = wsManager.current;
+      
+      // 接收AI回复
+      ws.on('chat_response', (response: AiChatResponse) => {
+        console.log('收到AI回复:', response);
+        handleAiResponse(response);
+      });
+    };
+    
     initializeAndLoadMessages();
+    setupAiResponseListener();
+    
+    // 清理函数
+    return () => {
+      const ws = wsManager.current;
+      ws.off('chat_response', () => {});
+    };
   }, []);
 
   const loadMessages = (userName: string) => {
@@ -69,12 +95,73 @@ export default function AiPage() {
     setMessages(userMessages);
   };
 
+  // 处理AI回复
+  const handleAiResponse = async (response: AiChatResponse) => {
+    console.log('处理AI回复:', response);
+    if (response.code === 200 && response.data) {
+      const { aiText, aiVoiceBase64, userText } = response.data;
+      
+      // 添加AI回复消息到本地存储
+      const aiMessage = msgManager.createMessage(
+        aiVoiceBase64 ? `data:audio/wav;base64,${aiVoiceBase64}` : undefined,
+        "other",
+        aiText
+      );
+      
+      if (name) {
+        await msgManager.addMessage(name, aiMessage);
+        loadMessages(name);
+      }
+    } else {
+      Alert.alert('AI回复错误', response.msg || '处理AI回复时出现错误');
+    }
+  };
+
+  // 将音频文件转换为Base64
+  const audioToBase64 = async (uri: string): Promise<string> => {
+    try {
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      return base64;
+    } catch (error) {
+      console.error('音频转Base64失败:', error);
+      throw error;
+    }
+  };
+
   const handleRecordingComplete = async (uri: string) => {
-    if (name) {
-      const newMessage = msgManager.createMessage(uri, "me");
-      // console.log(newMessage);
+    if (!name || !aiRoleId) {
+      Alert.alert('错误', '缺少必要信息，无法发送消息');
+      return;
+    }
+
+    try {
+      // 添加用户消息到本地存储
+      const newMessage = msgManager.createMessage(uri, "me", undefined);
       await msgManager.addMessage(name, newMessage);
       loadMessages(name);
+
+      // 检查WebSocket连接状态
+      if (!isConnected) {
+        Alert.alert('连接错误', 'WebSocket未连接，请稍后重试');
+        return;
+      }
+
+      // 转换音频为Base64并发送
+      const voiceBase64 = await audioToBase64(uri);
+      const chatRequest: AiChatRequest = {
+        type: 'voice',
+        voiceBase64,
+        aiRoleId
+      };
+
+      console.log('发送聊天请求:', chatRequest);
+      wsManager.current.sendChatMessage(chatRequest);
+      
+    } catch (error) {
+      console.error('发送消息失败:', error);
+      Alert.alert('发送失败', '发送语音消息时出现错误');
     }
   };
 
@@ -154,6 +241,17 @@ const style = StyleSheet.create({
     fontSize: width * 0.1,
     fontWeight: "bold",
     color: "black",
+  },
+  connectionStatus: {
+    marginTop: height * 0.01,
+    paddingHorizontal: width * 0.03,
+    paddingVertical: height * 0.005,
+    borderRadius: width * 0.02,
+  },
+  connectionText: {
+    fontSize: width * 0.03,
+    color: "white",
+    fontWeight: "500",
   },
   profile: {
     height: height * 0.3,

@@ -1,3 +1,4 @@
+import { AiItem, getAiManager } from "@/api/aiManeger";
 import CircleButton from "@/components/circleButton";
 import EndButton from "@/components/endButton";
 import ReturnButton from "@/components/returnButton";
@@ -6,12 +7,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Dimensions,
-    Image,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  Dimensions,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 const { height, width } = Dimensions.get("window");
 
@@ -110,22 +111,47 @@ const Step5 = () => {
   );
 };
 
-const SkipView = ({ setStep, role }: { setStep: (step: number) => void, role: string }) => {
+const SkipView = ({ setStep, role, profileImg }: { setStep: (step: number) => void, role: string, profileImg: string }) => {
   return (
     <View style={styles.content}>
       <Text style={styles.guideText}> 接下来将启动<Text style={{color:"red"}}>系统默认音色</Text>，确定吗？ </Text>
       <View style={styles.buttonBox}>
         <Pressable
           style={styles.normalButton}
-          onPress={() => {
-            interface Data {
-              name: string;
+          onPress={async () => {
+            try {
+              // 创建AI项目
+              const aiManager = getAiManager();
+              const newAiItem: AiItem = {
+                id: `ai_${Date.now()}`,
+                name: role,
+                img: profileImg || "https://pan.heky.top/tmp/profile.png",
+                voice: "系统默认音色",
+              };
+              
+              await aiManager.createAiItem(newAiItem);
+              
+              // 跳转到AI页面
+              interface Data {
+                name: string;
+              }
+              const data: Data = {
+                name: role,
+              }
+              const params = encodeURIComponent(JSON.stringify(data));
+              router.push(`/(aiPage)/aiPage?data=${params}`);
+            } catch (error) {
+              console.error('创建AI项目失败:', error);
+              // 即使创建失败也继续跳转
+              interface Data {
+                name: string;
+              }
+              const data: Data = {
+                name: role,
+              }
+              const params = encodeURIComponent(JSON.stringify(data));
+              router.push(`/(aiPage)/aiPage?data=${params}`);
             }
-            const data: Data = {
-              name: role,
-            }
-            const params = encodeURIComponent(JSON.stringify(data));
-            router.push(`/(aiPage)/aiPage?data=${params}`);
           }}
         >
           <Text style={styles.ButtonText}> 确定 </Text>
@@ -171,8 +197,8 @@ const LoadingBar = () => {
 export default function AiVoiceSetPage() {
   const [step, setStep] = useState<number>(0);
   const [role, setRole] = useState<string>("");
-  const [phone, setPhone] = useState<string>("");
   const [voice, setVoice] = useState<string>("");
+  const [profileImg, setProfileImg] = useState<string>("");
   const data = useLocalSearchParams<{
     data: string;
   }>();
@@ -191,7 +217,7 @@ export default function AiVoiceSetPage() {
     //   console.log(data.data);
       const uncodeData = JSON.parse(decodeURIComponent(data.data));
       setRole(uncodeData.role);
-      setPhone(uncodeData.phone);
+      setProfileImg(uncodeData.image);
     }
   }, []);
 
@@ -235,7 +261,7 @@ export default function AiVoiceSetPage() {
           {step === 3 && <Step3 />}
           {step === 4 && <Step4 setStep={setStep} />}
           {step === 5 && <Step5 />}
-          {step === 6 && <SkipView setStep={setStep} role={role} />}
+          {step === 6 && <SkipView setStep={setStep} role={role} profileImg={profileImg} />}
         </View>
         <View style={styles.returnButton}>
           <ReturnButton />
