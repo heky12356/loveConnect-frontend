@@ -1,9 +1,10 @@
+import { timeManager } from '@/api/timeManager';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { WebSocketProvider } from '@/hook/useWebSocket';
-import { Stack } from "expo-router";
 import * as Notifications from 'expo-notifications';
+import { Stack } from "expo-router";
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import { timeManager } from '@/api/timeManager';
 
 // 设置通知处理器（仅在移动端）
 if (Platform.OS !== 'web') {
@@ -74,14 +75,16 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <WebSocketProvider>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
-        <Stack.Screen name="index" />
-      </Stack>
-    </WebSocketProvider>
+    <AuthProvider>
+      <WebSocketProvider>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+        >
+          <Stack.Screen name="index" />
+        </Stack>
+      </WebSocketProvider>
+    </AuthProvider>
   );
 }

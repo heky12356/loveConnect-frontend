@@ -2,6 +2,7 @@ import { getInfoManager } from "@/api/infoManeger";
 import BigButton from "@/components/BigButton";
 import NavBar from "@/components/NavBar";
 import AiLogoButton from "@/components/aiLogoButton";
+import { useAuth } from "@/contexts/AuthContext";
 import { useFirstAttention } from "@/hook/getFirstAttention";
 import Feather from "@expo/vector-icons/Feather";
 import Fontisto from "@expo/vector-icons/Fontisto";
@@ -9,8 +10,8 @@ import Foundation from "@expo/vector-icons/Foundation";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React from "react";
-import { Alert, Dimensions, Linking, StyleSheet, View } from "react-native";
+import React, { useEffect } from "react";
+import { Alert, Dimensions, Linking, StyleSheet, Text, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 const infoManager = getInfoManager();
@@ -67,6 +68,33 @@ const handlePhonePress = async () => {
 
 export default function Index() {
   const [isFirstAttention, setIsFirstAttention] = useFirstAttention();
+  const { user, isAuthenticated, logout, isInitialized } = useAuth();
+
+  // 检查认证状态，如果未登录则跳转到登录页面
+  useEffect(() => {
+    if (isInitialized && !isAuthenticated) {
+      router.replace('/(auth)/login');
+    }
+  }, [isAuthenticated, isInitialized]);
+
+  const handleProfilePress = () => {
+    router.push('/(auth)/profile');
+  };
+
+  // 如果未初始化或未认证，显示加载状态
+  if (!isInitialized || !isAuthenticated || !user) {
+    return (
+      <LinearGradient
+        colors={["#FFE9EA", "#EDFFB8", "#FFFFFF"]}
+        locations={[0.1, 0.4, 0.7]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+      >
+        <Text style={{ fontSize: width * 0.05, color: '#666' }}>加载中...</Text>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient

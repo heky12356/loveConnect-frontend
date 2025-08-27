@@ -1,18 +1,23 @@
 import { ChangeFlag, getInfoManager } from "@/api/infoManeger";
+import { useAuth } from "@/contexts/AuthContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
+
 import {
+  Alert,
   Dimensions,
   Image,
   ImageSourcePropType,
   Pressable,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native";
 const { height, width } = Dimensions.get("window");
-const img: ImageSourcePropType = require('@/assets/images/avaretor_example.png')
+const img: ImageSourcePropType = require("@/assets/images/avaretor_example.png");
 const infoManager = getInfoManager();
 
 type Prop = {
@@ -22,14 +27,28 @@ type Prop = {
 export default function NavBar({ style }: Prop) {
   const [profileImg, setProfileImg] = useState("");
   const [userName, setUserName] = useState("");
+  const { logout } = useAuth();
 
   useEffect(() => {
     // console.log("NavBar useEffect");
     infoManager.getInfo().then((info) => {
       setProfileImg(info.avatar);
       setUserName(info.name);
-    })
+    });
   }, [ChangeFlag]);
+
+  const handleLogout = () => {
+    Alert.alert("确认登出", "您确定要登出吗？", [
+      { text: "取消", style: "cancel" },
+      {
+        text: "确定",
+        onPress: async () => {
+          await logout();
+          router.replace("/(auth)/login");
+        },
+      },
+    ]);
+  };
 
   return (
     <View style={[styles.navbar, style]}>
@@ -47,26 +66,21 @@ export default function NavBar({ style }: Prop) {
         <View>
           <Text style={styles.userName}>{userName}</Text>
         </View>
-        <Pressable onPress={() => {
-          router.push("/profilePage")
-        }}>
+        <Pressable
+          onPress={() => {
+            router.push("/profilePage");
+          }}
+        >
           <Text>点击切换/更改资料</Text>
         </Pressable>
       </View>
-      {/* <View style={styles.util}>
-        <EvilIcons
-          name="search"
-          size={30}
-          color="black"
-          // style={{ backgroundColor: "red" }}
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <MaterialCommunityIcons
+          name="logout"
+          size={width * 0.06}
+          color="#FF6B6B"
         />
-        <Feather
-          name="more-horizontal"
-          size={24}
-          color="black"
-          style={{ marginTop: 0 }}
-        />
-      </View> */}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -110,5 +124,8 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 18,
     fontWeight: "bold",
+  },
+  logoutButton: {
+    padding: width * 0.02,
   },
 });

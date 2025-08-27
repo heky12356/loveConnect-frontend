@@ -1,3 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { User } from '../contexts/AuthContext';
+
+// 为了向后兼容，保持原有的 Info 接口
 interface Info {
   name: string;
   gender: string;
@@ -18,9 +22,16 @@ interface InfoManager {
   updateAvatar: (avatar: string) => Promise<void>;
   updatePhone: (phone: string) => Promise<void>;
   updateAddress: (address: string) => Promise<void>;
+  // 新增方法
+  initialize: () => Promise<void>;
+  syncWithAuth: (user: User) => Promise<void>;
 }
 
-let textInfo: Info = {
+// 存储键名
+const STORAGE_KEY = '@loveConnect:userInfo';
+
+// 默认用户信息
+let defaultInfo: Info = {
   name: "张三",
   gender: "男",
   date: "2023-01-01",
@@ -30,42 +41,110 @@ let textInfo: Info = {
   urgentPhone: "22333",
 };
 
-// 模拟用信息管理器
+let currentInfo: Info = { ...defaultInfo };
+
+// 增强的信息管理器，支持持久化存储和认证同步
 class InfoManagerText implements InfoManager {
+  private initialized = false;
+
+  // 初始化方法，从本地存储加载数据
+  async initialize() {
+    if (this.initialized) return;
+    
+    try {
+      const storedInfo = await AsyncStorage.getItem(STORAGE_KEY);
+      if (storedInfo) {
+        currentInfo = JSON.parse(storedInfo);
+      } else {
+        // 如果没有存储的信息，使用默认信息并保存
+        await this.saveToStorage();
+      }
+    } catch (error) {
+      console.error('初始化用户信息失败:', error);
+      currentInfo = { ...defaultInfo };
+    }
+    
+    this.initialized = true;
+  }
+
+  // 保存到本地存储
+  private async saveToStorage() {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(currentInfo));
+      ChangeFlag = !ChangeFlag;
+    } catch (error) {
+      console.error('保存用户信息失败:', error);
+    }
+  }
+
+  // 与认证系统同步
+  async syncWithAuth(user: User) {
+    try {
+      currentInfo = {
+        name: user.name,
+        gender: user.gender,
+        date: user.date,
+        avatar: user.avatar,
+        phone: user.phone,
+        address: user.address,
+        urgentPhone: user.urgentPhone,
+      };
+      await this.saveToStorage();
+    } catch (error) {
+      console.error('同步认证用户信息失败:', error);
+    }
+  }
+
   async getUrgentPhone() {
-    return textInfo.urgentPhone;
+    await this.initialize();
+    return currentInfo.urgentPhone;
   }
+
   async updateName(name: string) {
-    textInfo.name = name;
-    ChangeFlag = !ChangeFlag;
+    await this.initialize();
+    currentInfo.name = name;
+    await this.saveToStorage();
   }
+
   async updateGender(gender: string) {
-    textInfo.gender = gender;
-    ChangeFlag = !ChangeFlag;
+    await this.initialize();
+    currentInfo.gender = gender;
+    await this.saveToStorage();
   }
+
   async updateDate(date: string) {
-    textInfo.date = date;
-    ChangeFlag = !ChangeFlag;
+    await this.initialize();
+    currentInfo.date = date;
+    await this.saveToStorage();
   }
+
   async updateAvatar(avatar: string) {
-    textInfo.avatar = avatar;
-    ChangeFlag = !ChangeFlag;
+    await this.initialize();
+    currentInfo.avatar = avatar;
+    await this.saveToStorage();
   }
+
   async updatePhone(phone: string) {
-    textInfo.phone = phone;
-    ChangeFlag = !ChangeFlag;
+    await this.initialize();
+    currentInfo.phone = phone;
+    await this.saveToStorage();
   }
+
   async updateAddress(address: string) {
-    textInfo.address = address;
-    ChangeFlag = !ChangeFlag;
+    await this.initialize();
+    currentInfo.address = address;
+    await this.saveToStorage();
   }
+
   async getInfo() {
-    return textInfo;
+    await this.initialize();
+    return { ...currentInfo };
   }
+
   async updateInfo(info: Info) {
-    textInfo = info;
-    // console.log(info);
-    ChangeFlag = !ChangeFlag;
+    await this.initialize();
+    currentInfo = { ...info };
+    await this.saveToStorage();
   }
 }
 
