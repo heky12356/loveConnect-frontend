@@ -1,3 +1,7 @@
+/** 
+ *  旧的时间项hook目前已经弃用
+ */
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState } from "react";
 

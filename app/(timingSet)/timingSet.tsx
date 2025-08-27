@@ -1,7 +1,7 @@
 import AiListAddItemButton from "@/components/aiListAddItemButton";
 import ReturnButton from "@/components/returnButton";
 import TimeSetItem from "@/components/timeSetItem";
-import { useTimeItem } from "@/hook/useTimeItem";
+import { useTimeManager } from "@/hook/useTimeManager";
 import Feather from "@expo/vector-icons/Feather";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
@@ -12,25 +12,36 @@ const { height, width } = Dimensions.get("window");
 const iconStyle = width * 0.1;
 
 export default function TimingSet() {
-  const { items, addItem } = useTimeItem();
+  const { items, addItem, loading, toggleItem, deleteItem } = useTimeManager();
 
   const params = useLocalSearchParams<{
     data: string;
   }>();
   useEffect(() => {
-    // console.log(params?.data);
-    if (params?.data) {
-      const data = JSON.parse(decodeURIComponent(params.data));
-      // console.log(data.event);
-      if (data.event !== "") {
-        addItem({
-          title: data.event,
-          time: data.hour + ":" + data.minute,
-        });
+    const handleNewItem = async () => {
+      if (params?.data) {
+        try {
+          const data = JSON.parse(decodeURIComponent(params.data));
+          if (data.event !== "") {
+            await addItem({
+              title: data.event,
+              time: data.hour + ":" + data.minute,
+              isEnabled: true,
+              repeatType: data.repeatType || 'once',
+              selectedDays: data.selectedDays,
+              soundEnabled: data.isSound || false,
+            });
+            // 清除URL参数，避免重复添加
+            router.replace('/(timingSet)/timingSet');
+          }
+        } catch (error) {
+          console.error('添加定时项失败:', error);
+        }
       }
-    }
-    // console.log(items);
-  }, []);
+    };
+
+    handleNewItem();
+  }, [params?.data, addItem]);
 
   return (
     <LinearGradient
@@ -52,9 +63,20 @@ export default function TimingSet() {
           contentContainerStyle={style.content}
           showsVerticalScrollIndicator={false}
         >
-          {items.map((item, index) => (
-            <TimeSetItem key={index} title={item.title} time={item.time} />
-          ))}
+          {loading ? (
+            <Text>加载中...</Text>
+          ) : (
+            items.map((item) => (
+              <TimeSetItem 
+                 key={item.id} 
+                 title={item.title} 
+                 time={item.time}
+                 isEnabled={item.isEnabled}
+                 onToggle={() => toggleItem(item.id)}
+                 onDelete={() => deleteItem(item.id)}
+               />
+            ))
+          )}
           <AiListAddItemButton
             onPress={() => router.push("/(timingSet)/addTimePage")}
             Setwidth={width * 0.82}
@@ -90,6 +112,19 @@ const style = StyleSheet.create({
     fontSize: width * 0.08,
     // fontWeight: "bold",
     color: "black",
+  },
+  testButton: {
+    position: 'absolute',
+    right: width * 0.05,
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  testButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   scrollContainer: {
     flex: 1,

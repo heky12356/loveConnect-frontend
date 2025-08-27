@@ -26,6 +26,8 @@ interface TimeData {
   month: string;
   day: string;
   event: string;
+  isSound: boolean;
+  repeatType: 'once' | 'daily' | 'workdays' | 'custom';
 }
 
 const IsSetter = ({
@@ -123,6 +125,18 @@ export default function AddTimePage() {
     }
     // console.log(year, month, day, hour, minute);
 
+    // 根据选择的循环类型确定 repeatType
+    let repeatType: 'once' | 'daily' | 'workdays' | 'custom' = 'once';
+    if (isCircle) {
+      if (selectedLabel === '每天') {
+        repeatType = 'daily';
+      } else if (selectedLabel === '工作日') {
+        repeatType = 'workdays';
+      } else if (selectedDays.length > 0) {
+        repeatType = 'custom';
+      }
+    }
+
     const data : TimeData = {
       selectedLabel: selectedLabel,
       selectedDays: selectedDays,
@@ -132,6 +146,8 @@ export default function AddTimePage() {
       year: year,
       month: month,
       day: day,
+      isSound: isSound,
+      repeatType: repeatType,
     }
 
     const encodedData = encodeURIComponent(JSON.stringify(data));
