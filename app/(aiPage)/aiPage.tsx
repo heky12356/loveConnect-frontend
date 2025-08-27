@@ -1,10 +1,14 @@
 import { msgManager } from "@/api/msgManager";
-import { AiChatRequest, AiChatResponse, getWebSocketManager } from "@/api/websocketManager";
+import {
+  AiChatRequest,
+  AiChatResponse,
+  getWebSocketManager,
+} from "@/api/websocketManager";
 import AiChatButtons from "@/components/aiChatButtons";
 import ReqChatItem from "@/components/reqChatItem";
 import ReqpChatItem from "@/components/reqpChatItem";
-import { useWebSocket } from '@/hook/useWebSocket';
-import * as FileSystem from 'expo-file-system';
+import { useWebSocket } from "@/hook/useWebSocket";
+import * as FileSystem from "expo-file-system";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -46,6 +50,8 @@ export default function AiPage() {
   const [aiRoleId, setAiRoleId] = useState<string>("");
   const { isConnected } = useWebSocket();
   const wsManager = useRef(getWebSocketManager());
+  const scrollViewRef = useRef<ScrollView>(null);
+  const nameRef = useRef<string>(""); // 用于保存最新的name值
 
   const info = useLocalSearchParams<{
     data: string;
@@ -53,67 +59,90 @@ export default function AiPage() {
 
   useEffect(() => {
     const initializeAndLoadMessages = async () => {
-      // 初始化msgManager
-      await msgManager.initialize();
-      
-      if (info.data) {
-        const data = JSON.parse(decodeURIComponent(info.data));
-        setName(data.name);
-        setAiRoleId(data.id || 'default-ai-role');
-        if (data.img) {
-          setProfileImg(data.img);
+      try {
+        // 初始化msgManager
+        await msgManager.initialize();
+        console.log("msgManager初始化完成");
+
+        if (info.data) {
+          const data = JSON.parse(decodeURIComponent(info.data));
+          console.log("解析页面参数:", data);
+          setName(data.name);
+          nameRef.current = data.name; // 同步更新nameRef
+          setAiRoleId(data.id || "default-ai-role");
+          if (data.img) {
+            setProfileImg(data.img);
+          }
+          // 直接加载消息
+          loadMessages(data.name);
         }
-        // 加载该用户的消息
-        loadMessages(data.name);
+      } catch (error) {
+        console.error("初始化失败:", error);
       }
     };
-    
+
     // 设置AI回复事件监听器
+    const aiResponseHandler = (response: AiChatResponse) => {
+      console.log("收到AI回复:", response);
+      handleAiResponse(response);
+    };
+
     const setupAiResponseListener = () => {
       const ws = wsManager.current;
-      
+      // 先移除可能存在的旧监听器
+      ws.off("chat_response", aiResponseHandler);
       // 接收AI回复
-      ws.on('chat_response', (response: AiChatResponse) => {
-        console.log('收到AI回复:', response);
-        handleAiResponse(response);
-      });
+      ws.on("chat_response", aiResponseHandler);
     };
-    
+
     initializeAndLoadMessages();
     setupAiResponseListener();
-    
+
     // 清理函数
     return () => {
       const ws = wsManager.current;
-      ws.off('chat_response', () => {});
+      ws.off("chat_response", aiResponseHandler);
     };
   }, []);
 
   const loadMessages = (userName: string) => {
     const userMessages = msgManager.getMessages(userName);
-    console.log(userMessages);
-    setMessages(userMessages);
+    console.log("加载消息:", userMessages);
+    setMessages(userMessages); // msgManager已经返回新的数组引用
   };
+
+  // 滚动到底部
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
+
+  // 监听messages变化，自动滚动到底部
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages]);
 
   // 处理AI回复
   const handleAiResponse = async (response: AiChatResponse) => {
-    console.log('处理AI回复:', response);
-    if (response.code === 200 && response.data) {
+    console.log("处理AI回复:", response);
+    if (response.code === 200) {
+      console.log("AI回复数据:", response.data);
       const { aiText, aiVoiceBase64, userText } = response.data;
-      
-      // 添加AI回复消息到本地存储
+
+      // 添加AI回复消息到本地存储并直接更新状态
       const aiMessage = msgManager.createMessage(
         aiVoiceBase64 ? `data:audio/wav;base64,${aiVoiceBase64}` : undefined,
         "other",
         aiText
       );
-      
-      if (name) {
-        await msgManager.addMessage(name, aiMessage);
-        loadMessages(name);
-      }
+      console.log("添加AI消息:", aiMessage);
+      const updatedMessages = await msgManager.addMessage(nameRef.current, aiMessage);
+      setMessages(updatedMessages); // 直接使用返回的消息列表更新状态
     } else {
-      Alert.alert('AI回复错误', response.msg || '处理AI回复时出现错误');
+      Alert.alert("AI回复错误", response.msg || "处理AI回复时出现错误");
     }
   };
 
@@ -125,43 +154,43 @@ export default function AiPage() {
       });
       return base64;
     } catch (error) {
-      console.error('音频转Base64失败:', error);
+      console.error("音频转Base64失败:", error);
       throw error;
     }
   };
 
   const handleRecordingComplete = async (uri: string) => {
-    if (!name || !aiRoleId) {
-      Alert.alert('错误', '缺少必要信息，无法发送消息');
+    if (!nameRef.current || !aiRoleId) {
+      Alert.alert("错误", "缺少必要信息，无法发送消息");
       return;
     }
 
     try {
-      // 添加用户消息到本地存储
+      // 添加用户消息到本地存储并直接更新状态
       const newMessage = msgManager.createMessage(uri, "me", undefined);
-      await msgManager.addMessage(name, newMessage);
-      loadMessages(name);
+      console.log("添加用户消息:", newMessage);
+      const updatedMessages = await msgManager.addMessage(nameRef.current, newMessage);
+      setMessages(updatedMessages); // 直接使用返回的消息列表更新状态
 
       // 检查WebSocket连接状态
       if (!isConnected) {
-        Alert.alert('连接错误', 'WebSocket未连接，请稍后重试');
+        Alert.alert("连接错误", "WebSocket未连接，请稍后重试");
         return;
       }
 
       // 转换音频为Base64并发送
       const voiceBase64 = await audioToBase64(uri);
       const chatRequest: AiChatRequest = {
-        type: 'voice',
+        type: "voice",
         voiceBase64,
-        aiRoleId
+        aiRoleId,
       };
 
-      console.log('发送聊天请求:', chatRequest);
+      console.log("发送聊天请求:", chatRequest);
       wsManager.current.sendChatMessage(chatRequest);
-      
     } catch (error) {
-      console.error('发送消息失败:', error);
-      Alert.alert('发送失败', '发送语音消息时出现错误');
+      console.error("发送消息失败:", error);
+      Alert.alert("发送失败", "发送语音消息时出现错误");
     }
   };
 
@@ -186,6 +215,7 @@ export default function AiPage() {
         </View>
         <View style={style.content}>
           <ScrollView
+            ref={scrollViewRef}
             style={style.scrollView}
             contentContainerStyle={style.scrollContent}
             showsVerticalScrollIndicator={false}

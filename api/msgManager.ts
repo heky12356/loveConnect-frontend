@@ -17,16 +17,30 @@ type ChatMap = Map<string, Message[]>;
  * 消息管理器
  * 负责管理本地消息存储、获取和WebSocket通信
  */
-export class msgManager {
-  private static chatMap: ChatMap = new Map();
+class MsgManager {
+  private static instance: MsgManager | null = null;
+  private chatMap: ChatMap = new Map();
+  private initialized: boolean = false;
+
+  private constructor() {}
+
+  static getInstance(): MsgManager {
+    if (!MsgManager.instance) {
+      MsgManager.instance = new MsgManager();
+    }
+    return MsgManager.instance;
+  }
 
   // 初始化数据加载
-  static async initialize() {
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+    
     try {
       const storedItems = await AsyncStorage.getItem(STORAGE_KEY);
       if (storedItems) {
         this.chatMap = new Map(Object.entries(JSON.parse(storedItems)));
       }
+      this.initialized = true;
     } catch (error) {
       console.error("加载数据失败:", error);
     }
@@ -36,7 +50,7 @@ export class msgManager {
    * @param name 用户名
    * @returns 消息数组
    */
-  static getMessages(name: string): Message[] {
+  getMessages(name: string): Message[] {
     return this.chatMap.get(name) || [];
   }
 
@@ -44,8 +58,9 @@ export class msgManager {
    * 添加新消息到本地存储
    * @param name 用户名
    * @param message 消息对象
+   * @returns 更新后的消息列表
    */
-  static async addMessage(name: string, message: Message): Promise<void> {
+  async addMessage(name: string, message: Message): Promise<Message[]> {
     const messages = this.getMessages(name);
     const newMessages = [...messages, message]; // 创建新数组引用
     this.chatMap.set(name, newMessages);
@@ -56,13 +71,15 @@ export class msgManager {
     } catch (error) {
       console.error("保存数据失败:", error);
     }
+    
+    return newMessages; // 返回更新后的消息列表
   }
 
   /**
    * 清空指定用户的消息
    * @param name 用户名
    */
-  static async clearMessages(name: string): Promise<void> {
+  async clearMessages(name: string): Promise<void> {
     this.chatMap.delete(name);
     
     // 持久化到AsyncStorage
@@ -78,7 +95,7 @@ export class msgManager {
    * @param name 用户名
    * @param message 消息对象
    */
-  static sendToWebSocket(name: string, message: Message): void {
+  sendToWebSocket(name: string, message: Message): void {
     // TODO: 实现WebSocket发送逻辑
     console.log("发送消息到WebSocket:", { name, message });
   }
@@ -90,7 +107,7 @@ export class msgManager {
    * @param text 文本内容（可选，如果不提供则使用默认文本）
    * @returns 消息对象
    */
-  static createMessage(uri: string | undefined, sender: "me" | "other", text?: string): Message {
+  createMessage(uri: string | undefined, sender: "me" | "other", text?: string): Message {
     return {
       uri,
       text: text || "暂时无法转换为文字",
@@ -105,3 +122,6 @@ export class msgManager {
     };
   }
 }
+
+// 导出单例实例
+export const msgManager = MsgManager.getInstance();
