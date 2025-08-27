@@ -1,5 +1,5 @@
 import { NotificationData } from '@/types/websocket';
-import React, { useEffect, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Pressable, StyleSheet, Text } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -9,10 +9,15 @@ interface NotificationBannerProps {
   onDismiss: () => void;
 }
 
-const NotificationBanner: React.FC<NotificationBannerProps> = ({ notification, onDismiss }) => {
+const NotificationBanner: React.FC<NotificationBannerProps> = memo(({ notification, onDismiss }) => {
   const [slideAnim] = useState(new Animated.Value(-100));
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDismissedRef = useRef(false);
 
   useEffect(() => {
+    // 防止重复显示
+    if (isDismissedRef.current) return;
+
     // 滑入动画
     Animated.timing(slideAnim, {
       toValue: 0,
@@ -20,15 +25,40 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({ notification, o
       useNativeDriver: true,
     }).start();
 
-    // 自动消失
-    const timer = setTimeout(() => {
-      handleDismiss();
-    }, 5000);
+    // 根据通知类型设置不同的显示时长
+    const getDisplayDuration = () => {
+      switch (notification.type) {
+        case 'error': return 8000; // 错误通知显示更久
+        case 'warning': return 6000;
+        case 'success': return 4000;
+        default: return 5000;
+      }
+    };
 
-    return () => clearTimeout(timer);
-  }, []);
+    // 自动消失
+    dismissTimerRef.current = setTimeout(() => {
+      handleDismiss();
+    }, getDisplayDuration());
+
+    return () => {
+      if (dismissTimerRef.current) {
+        clearTimeout(dismissTimerRef.current);
+        dismissTimerRef.current = null;
+      }
+    };
+  }, [notification.type]);
 
   const handleDismiss = () => {
+    // 防止重复触发
+    if (isDismissedRef.current) return;
+    isDismissedRef.current = true;
+
+    // 清除自动消失定时器
+    if (dismissTimerRef.current) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
+    }
+
     Animated.timing(slideAnim, {
       toValue: -100,
       duration: 300,
@@ -63,7 +93,7 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({ notification, o
       </Pressable>
     </Animated.View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -94,5 +124,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+NotificationBanner.displayName = 'NotificationBanner';
 
 export default NotificationBanner;

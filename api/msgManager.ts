@@ -84,16 +84,16 @@ export class msgManager {
   }
 
   /**
-   * 创建新的语音消息
-   * @param uri 语音文件URI
+   * 创建新消息
+   * @param uri 语音文件URI（可选）
    * @param sender 发送方
+   * @param text 文本内容（可选，如果不提供则使用默认文本）
    * @returns 消息对象
    */
-  // 这边等后端语音转文字的api做完了得修改下逻辑
-  static createMessage(uri: string, sender: "me" | "other"): Message {
+  static createMessage(uri: string | undefined, sender: "me" | "other", text?: string): Message {
     return {
       uri,
-      text: "暂时无法转换为文字",
+      text: text || "暂时无法转换为文字",
       time: new Date().toLocaleTimeString("zh-CN", {
         year: "2-digit",
         month: "2-digit",
