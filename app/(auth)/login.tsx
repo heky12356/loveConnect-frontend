@@ -20,20 +20,37 @@ import {
 const { width, height } = Dimensions.get('window');
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading, error, clearError } = useAuthManager();
 
-  const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('提示', '请输入邮箱和密码');
-      return;
+  const validateForm = () => {
+    if (!phone.trim()) {
+      Alert.alert('提示', '请输入手机号');
+      return false;
     }
+    
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(phone.trim())) {
+      Alert.alert('提示', '请输入正确的11位手机号');
+      return false;
+    }
+    
+    if (!password.trim()) {
+      Alert.alert('提示', '请输入密码');
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleLogin = async () => {
+    if (!validateForm()) return;
 
     try {
       clearError();
-      await login(email.trim(), password);
+      await login(phone.trim(), password);
       Alert.alert('成功', '登录成功！', [
         { text: '确定', onPress: () => router.replace('/') }
       ]);
@@ -70,14 +87,14 @@ export default function LoginPage() {
 
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <MaterialIcons name="email" size={width * 0.06} color="#666" style={styles.inputIcon} />
+              <MaterialIcons name="phone" size={width * 0.06} color="#666" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="邮箱地址"
+                placeholder="手机号码"
                 placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
                 autoCapitalize="none"
                 autoCorrect={false}
               />

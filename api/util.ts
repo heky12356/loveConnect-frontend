@@ -79,7 +79,7 @@ export const uploadImage = async (options: ImageUploadOptions): Promise<ImageUpl
     } else {
       return {
         success: false,
-        message: result.message || '上传失败'
+        message: result.msg || '上传失败'
       };
     }
   } catch (error) {

@@ -53,12 +53,7 @@ interface ChatRecordsResponse {
   pages: number;
 }
 
-// 统一响应格式
-interface ApiResponse<T> {
-  code: string;
-  message: string;
-  data: T;
-}
+import { ApiResponse, handleApiResponse, handleApiError, authenticatedApiRequest } from './apiUtils';
 
 let localAiList: AiItem[] = [
   {
@@ -77,8 +72,6 @@ let localAiList: AiItem[] = [
 interface AiManager {
   // AI项目管理
   getAiList: () => Promise<AiItem[]>;
-  addAiItem: (item: AiItem) => Promise<void>;
-  createAiItem: (item: AiItem) => Promise<AiItem>;
   
   // AI声音初始化
   uploadVoiceInit: (audioFile: File, relation?: string, voiceId?: string) => Promise<VoiceInitResponse>;
@@ -93,104 +86,81 @@ class AiManagerImpl implements AiManager {
   private baseURL = 'http://localhost:8080'; // 根据实际后端地址配置
   
   async getAiList(): Promise<AiItem[]> {
-    // 实际实现中应该从后端API获取
-    const response = await fetch(`${this.baseURL}/ai/list`);
-    const result: ApiResponse<AiItem[]> = await response.json();
-    
-    if (result.code !== '200') {
-      throw new Error(result.message || '获取AI列表失败');
-    }
-    
-    return result.data;
-  }
-  
-  async addAiItem(item: AiItem): Promise<void> {
-    const response = await fetch(`${this.baseURL}/ai/add`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(item),
-    });
-    
-    const result: ApiResponse<void> = await response.json();
-    
-    if (result.code !== '200') {
-      throw new Error(result.message || '添加AI项目失败');
+    try {
+      const response = await fetch(`${this.baseURL}/ai/getallai`);
+      const result: ApiResponse<any[]> = await response.json();
+      const data = handleApiResponse(result);
+      
+      // 转换后端数据格式为前端格式
+      const aiList: AiItem[] = data.map((item: any) => ({
+        id: item.id?.toString() || '',
+        name: item.name || '',
+        img: item.avatar || 'https://pan.heky.top/tmp/profile.png',
+        voice: item.voiceId || '',
+        createdAt: new Date().toISOString(),
+        profileId: item.id,
+        relation: item.relation || '',
+        voiceId: item.voiceId || '',
+      }));
+      
+      return aiList;
+    } catch (error) {
+      handleApiError(error);
     }
   }
   
-  async createAiItem(item: AiItem): Promise<AiItem> {
-    const response = await fetch(`${this.baseURL}/ai/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(item),
-    });
-    
-    const result: ApiResponse<AiItem> = await response.json();
-    
-    if (result.code !== '200') {
-      throw new Error(result.message || '创建AI项目失败');
-    }
-    
-    return result.data;
-  }
+
   
   async uploadVoiceInit(audioFile: File, relation?: string, voiceId?: string): Promise<VoiceInitResponse> {
-    const formData = new FormData();
-    formData.append('file', audioFile);
-    if (relation) formData.append('relation', relation);
-    if (voiceId) formData.append('voiceId', voiceId);
-    
-    const response = await fetch(`${this.baseURL}/ai/voice/init`, {
-      method: 'POST',
-      body: formData,
-    });
-    
-    const result: ApiResponse<VoiceInitResponse> = await response.json();
-    
-    if (result.code !== '200') {
-      throw new Error(result.message || '音频上传失败');
+    try {
+      const formData = new FormData();
+      formData.append('file', audioFile);
+      if (relation) formData.append('relation', relation);
+      if (voiceId) formData.append('voiceId', voiceId);
+      
+      const response = await fetch(`${this.baseURL}/ai/voice/init`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const result: ApiResponse<VoiceInitResponse> = await response.json();
+      return handleApiResponse(result);
+    } catch (error) {
+      handleApiError(error);
     }
-    
-    return result.data;
   }
   
   async saveVoiceConfig(config: VoiceSaveRequest): Promise<VoiceSaveResponse> {
-    const response = await fetch(`${this.baseURL}/ai/voice/save`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(config),
-    });
-    
-    const result: ApiResponse<VoiceSaveResponse> = await response.json();
-    
-    if (result.code !== '200') {
-      throw new Error(result.message || '保存AI配置失败');
+    try {
+      const response = await fetch(`${this.baseURL}/ai/savevoiceconfig`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config),
+      });
+      
+      const result: ApiResponse<VoiceSaveResponse> = await response.json();
+      return handleApiResponse(result);
+    } catch (error) {
+      handleApiError(error);
     }
-    
-    return result.data;
   }
   
   async getChatRecords(profileId: number, pageNum: number = 1, pageSize: number = 20): Promise<ChatRecordsResponse> {
-    const params = new URLSearchParams({
-      profileId: profileId.toString(),
-      pageNum: pageNum.toString(),
-      pageSize: pageSize.toString(),
-    });
-    
-    const response = await fetch(`${this.baseURL}/ai/chat/records?${params}`);
-    const result: ApiResponse<ChatRecordsResponse> = await response.json();
-    
-    if (result.code !== '200') {
-      throw new Error(result.message || '获取聊天记录失败');
+    try {
+      const params = new URLSearchParams({
+        profileId: profileId.toString(),
+        pageNum: pageNum.toString(),
+        pageSize: pageSize.toString(),
+      });
+      
+      const response = await fetch(`${this.baseURL}/ai/chat/records?${params}`);
+      const result: ApiResponse<ChatRecordsResponse> = await response.json();
+      return handleApiResponse(result);
+    } catch (error) {
+      handleApiError(error);
     }
-    
-    return result.data;
   }
 }
 
@@ -230,37 +200,6 @@ class AiManagerMock implements AiManager {
     // 模拟网络延迟
     await new Promise(resolve => setTimeout(resolve, 300));
     return [...localAiList];
-  }
-  
-  async addAiItem(item: AiItem): Promise<void> {
-    // 模拟网络延迟
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const newItem = {
-      ...item,
-      id: item.id || `ai_${Date.now()}`,
-      createdAt: item.createdAt || new Date().toISOString(),
-      profileId: item.profileId || Math.floor(Math.random() * 9000) + 1000,
-    };
-    localAiList.push(newItem);
-    console.log('AI项目已添加:', newItem);
-  }
-  
-  async createAiItem(item: AiItem): Promise<AiItem> {
-    // 模拟网络延迟
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const newItem = {
-      ...item,
-      id: `ai_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      voice: item.voice || '系统默认音色',
-      profileId: Math.floor(Math.random() * 9000) + 1000,
-      voiceId: `model_${Math.floor(Math.random() * 1000) + 1}`,
-    };
-    localAiList.push(newItem);
-    console.log('AI项目已创建:', newItem);
-    return newItem;
   }
   
   async uploadVoiceInit(audioFile: File, relation?: string, voiceId?: string): Promise<VoiceInitResponse> {

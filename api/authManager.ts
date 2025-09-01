@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../contexts/AuthContext';
+import { ApiResponse, handleApiResponse, handleApiError, authenticatedApiRequest } from './apiUtils';
 
 const mod = "development";
 // const mod = "production";
@@ -7,8 +8,8 @@ const mod = "development";
 // 认证管理器接口
 interface AuthManager {
   // 登录相关
-  login: (email: string, password: string) => Promise<{ user: User; token: string }>;
-  register: (userData: Omit<User, 'id' | 'token'> & { password: string; email: string }) => Promise<{ user: User; token: string }>;
+  login: (phone: string, password: string) => Promise<{ user: User; token: string }>;
+  register: (userData: { phone: string; password: string; confirmPassword: string; name: string }) => Promise<{ user: User; token: string }>;
   logout: () => Promise<void>;
   
   // 用户信息管理
@@ -22,7 +23,7 @@ interface AuthManager {
   
   // 密码管理
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
+  resetPassword: (phone: string) => Promise<void>;
 }
 
 // 存储键名
@@ -40,7 +41,7 @@ class AuthManagerMock implements AuthManager {
 
   constructor() {
     // 初始化一些测试用户
-    this.mockUsers.set('test@example.com', {
+    this.mockUsers.set('13800138000', {
       id: 'user_001',
       name: '张三',
       gender: '男',
@@ -49,18 +50,18 @@ class AuthManagerMock implements AuthManager {
       phone: '13800138000',
       address: '北京市朝阳区',
       urgentPhone: '13900139000',
-      email: 'test@example.com',
+      email: '13800138000@loveconnect.com',
       password: '123456',
     });
   }
 
-  async login(email: string, password: string): Promise<{ user: User; token: string }> {
+  async login(phone: string, password: string): Promise<{ user: User; token: string }> {
     // 模拟网络延迟
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const mockUser = this.mockUsers.get(email);
+    const mockUser = this.mockUsers.get(phone);
     if (!mockUser || mockUser.password !== password) {
-      throw new Error('邮箱或密码错误');
+      throw new Error('手机号或密码错误');
     }
 
     const token = this.generateToken();
@@ -78,21 +79,33 @@ class AuthManagerMock implements AuthManager {
     return { user, token };
   }
 
-  async register(userData: Omit<User, 'id' | 'token'> & { password: string; email: string }): Promise<{ user: User; token: string }> {
+  async register(userData: { phone: string; password: string; confirmPassword: string; name: string }): Promise<{ user: User; token: string }> {
     // 模拟网络延迟
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    if (this.mockUsers.has(userData.email)) {
-      throw new Error('该邮箱已被注册');
+    if (this.mockUsers.has(userData.phone)) {
+      throw new Error('该手机号已被注册');
+    }
+
+    if (userData.password !== userData.confirmPassword) {
+      throw new Error('两次输入的密码不一致');
     }
 
     const userId = `user_${Date.now()}`;
     const newUser = {
-      ...userData,
       id: userId,
+      name: userData.name,
+      gender: '',
+      date: '',
+      avatar: '',
+      phone: userData.phone,
+      address: '',
+      urgentPhone: userData.phone,
+      email: userData.phone + '@loveconnect.com',
+      password: userData.password,
     };
 
-    this.mockUsers.set(userData.email, newUser);
+    this.mockUsers.set(userData.phone, newUser);
 
     const token = this.generateToken();
     const { password: _, ...user } = newUser;
@@ -121,8 +134,21 @@ class AuthManagerMock implements AuthManager {
 
   async getCurrentUser(): Promise<User | null> {
     try {
+      // 首先尝试从本地存储获取
       const userStr = await AsyncStorage.getItem(STORAGE_KEYS.USER);
-      return userStr ? JSON.parse(userStr) : null;
+      if (userStr) {
+        return JSON.parse(userStr);
+      }
+      
+      // 如果本地没有，尝试从服务器获取
+      const token = await this.getToken();
+      if (token) {
+        const userInfo = await this.getUserInfo(token);
+        await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userInfo));
+        return userInfo;
+      }
+      
+      return null;
     } catch (error) {
       console.error('获取当前用户失败:', error);
       return null;
@@ -139,8 +165,8 @@ class AuthManagerMock implements AuthManager {
     await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
 
     // 同时更新 mockUsers 中的数据
-    if (updatedUser.email) {
-      const mockUser = this.mockUsers.get(updatedUser.email);
+    if (updatedUser.phone) {
+      const mockUser = this.mockUsers.get(updatedUser.phone);
       if (mockUser) {
         Object.assign(mockUser, userData);
       }
@@ -179,11 +205,11 @@ class AuthManagerMock implements AuthManager {
 
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
     const currentUser = await this.getCurrentUser();
-    if (!currentUser || !currentUser.email) {
+    if (!currentUser || !currentUser.phone) {
       throw new Error('用户未登录');
     }
 
-    const mockUser = this.mockUsers.get(currentUser.email);
+    const mockUser = this.mockUsers.get(currentUser.phone);
     if (!mockUser || mockUser.password !== oldPassword) {
       throw new Error('原密码错误');
     }
@@ -193,18 +219,41 @@ class AuthManagerMock implements AuthManager {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
-  async resetPassword(email: string): Promise<void> {
-    if (!this.mockUsers.has(email)) {
-      throw new Error('该邮箱未注册');
+  async resetPassword(phone: string): Promise<void> {
+    if (!this.mockUsers.has(phone)) {
+      throw new Error('该手机号未注册');
     }
 
-    // 模拟发送重置密码邮件
+    // 模拟发送重置密码短信
     await new Promise(resolve => setTimeout(resolve, 1500));
-    console.log(`密码重置邮件已发送到 ${email}`);
+    console.log(`密码重置短信已发送到 ${phone}`);
   }
 
   private generateToken(): string {
     return `mock_token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private async getUserInfo(token: string): Promise<User> {
+    // 模拟根据token获取用户信息
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // 简单验证token格式
+    if (!token.startsWith('mock_token_')) {
+      throw new Error('无效的token');
+    }
+    
+    // 返回默认用户信息（在实际应用中应该根据token查找对应用户）
+    return {
+      id: 'user_001',
+      name: '张三',
+      gender: '男',
+      date: '1990-01-01',
+      avatar: 'https://pan.heky.top/tmp/profile.png',
+      phone: '13800138000',
+      address: '北京市朝阳区',
+      urgentPhone: '13900139000',
+      email: '13800138000@loveconnect.com',
+    };
   }
 }
 
@@ -212,72 +261,81 @@ class AuthManagerMock implements AuthManager {
 class AuthManagerImpl implements AuthManager {
   private baseURL: string;
 
-  constructor(baseURL: string = 'https://api.loveconnect.com') {
+  constructor(baseURL: string = 'http://localhost:8080') {
     this.baseURL = baseURL;
   }
 
-  async login(email: string, password: string): Promise<{ user: User; token: string }> {
-    const response = await fetch(`${this.baseURL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
+  async login(phone: string, password: string): Promise<{ user: User; token: string }> {
+    try {
+      const response = await fetch(`${this.baseURL}/user/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone, password }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '登录失败');
+      const result: ApiResponse<string> = await response.json();
+      const token = handleApiResponse(result);
+      
+      // 获取用户信息
+      const userInfo = await this.getUserInfo(token);
+      
+      // 存储到本地
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userInfo)),
+        AsyncStorage.setItem(STORAGE_KEYS.TOKEN, token),
+        AsyncStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, 'true'),
+      ]);
+
+      return { user: userInfo, token };
+    } catch (error) {
+      handleApiError(error);
     }
-
-    const data = await response.json();
-    
-    // 存储到本地
-    await Promise.all([
-      AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.user)),
-      AsyncStorage.setItem(STORAGE_KEYS.TOKEN, data.token),
-      AsyncStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, 'true'),
-    ]);
-
-    return data;
   }
 
-  async register(userData: Omit<User, 'id' | 'token'> & { password: string; email: string }): Promise<{ user: User; token: string }> {
-    const response = await fetch(`${this.baseURL}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
-    });
+  async register(userData: { phone: string; password: string; confirmPassword: string; name: string }): Promise<{ user: User; token: string }> {
+    try {
+      const response = await fetch(`${this.baseURL}/user/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '注册失败');
+      const result: ApiResponse<string> = await response.json();
+      const token = handleApiResponse(result);
+      
+      // 获取用户信息
+      const userInfo = await this.getUserInfo(token);
+      
+      // 存储到本地
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userInfo)),
+        AsyncStorage.setItem(STORAGE_KEYS.TOKEN, token),
+        AsyncStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, 'true'),
+      ]);
+
+      return { user: userInfo, token };
+    } catch (error) {
+      handleApiError(error);
     }
-
-    const data = await response.json();
-    
-    // 存储到本地
-    await Promise.all([
-      AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.user)),
-      AsyncStorage.setItem(STORAGE_KEYS.TOKEN, data.token),
-      AsyncStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, 'true'),
-    ]);
-
-    return data;
   }
 
   async logout(): Promise<void> {
     const token = await this.getToken();
     if (token) {
       try {
-        await fetch(`${this.baseURL}/auth/logout`, {
+        const response = await fetch(`${this.baseURL}/user/logout`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
+        
+        const result: ApiResponse<any> = await response.json();
+        handleApiResponse(result);
       } catch (error) {
         console.error('服务器登出失败:', error);
       }
@@ -301,30 +359,80 @@ class AuthManagerImpl implements AuthManager {
     }
   }
 
+  // 获取用户信息的私有方法
+  private async getUserInfo(token: string): Promise<User> {
+    try {
+      const response = await fetch(`${this.baseURL}/user/info`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const result: ApiResponse<any> = await response.json();
+      const userData = handleApiResponse(result);
+      
+      return {
+        id: userData.phone, // 使用手机号作为ID
+        name: userData.name,
+        gender: userData.gender || '',
+        date: userData.birthday || '',
+        avatar: userData.avatar || '',
+        phone: userData.phone,
+        address: userData.address || '',
+        urgentPhone: userData.phone, // 默认使用主手机号
+        email: userData.phone + '@loveconnect.com', // 生成默认邮箱
+      };
+    } catch (error) {
+      handleApiError(error);
+    }
+  }
+
   async updateUserProfile(userData: Partial<User>): Promise<User> {
     const token = await this.getToken();
     if (!token) {
       throw new Error('用户未登录');
     }
 
-    const response = await fetch(`${this.baseURL}/user/profile`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(userData),
-    });
+    try {
+      // 转换为接口文档要求的格式
+      const updateData: any = {};
+      if (userData.name) updateData.name = userData.name;
+      if (userData.avatar) updateData.avatar = userData.avatar;
+      if (userData.gender) updateData.gender = userData.gender;
+      if (userData.date) updateData.birthday = userData.date;
+      if (userData.address) updateData.address = userData.address;
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '更新用户信息失败');
+      const response = await fetch(`${this.baseURL}/user/updateuserinfo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const result: ApiResponse<any> = await response.json();
+      const updatedUserData = handleApiResponse(result);
+
+      const updatedUser: User = {
+        id: updatedUserData.phone,
+        name: updatedUserData.name,
+        gender: updatedUserData.gender || '',
+        date: updatedUserData.birthday || '',
+        avatar: updatedUserData.avatar || '',
+        phone: updatedUserData.phone,
+        address: updatedUserData.address || '',
+        urgentPhone: updatedUserData.phone,
+        email: updatedUserData.phone + '@loveconnect.com',
+      };
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+      
+      return updatedUser;
+    } catch (error) {
+      handleApiError(error);
     }
-
-    const updatedUser = await response.json();
-    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
-    
-    return updatedUser;
   }
 
   async getToken(): Promise<string | null> {
@@ -342,22 +450,24 @@ class AuthManagerImpl implements AuthManager {
       throw new Error('刷新 token 不存在');
     }
 
-    const response = await fetch(`${this.baseURL}/auth/refresh`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refreshToken }),
-    });
+    try {
+      const response = await fetch(`${this.baseURL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
 
-    if (!response.ok) {
-      throw new Error('刷新 token 失败');
+      const result: ApiResponse<{ token: string }> = await response.json();
+      const data = handleApiResponse(result);
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, data.token);
+      
+      return data.token;
+    } catch (error) {
+      handleApiError(error);
     }
-
-    const data = await response.json();
-    await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, data.token);
-    
-    return data.token;
   }
 
   async validateToken(token: string): Promise<boolean> {
@@ -369,8 +479,11 @@ class AuthManagerImpl implements AuthManager {
         },
       });
       
-      return response.ok;
+      const result: ApiResponse<any> = await response.json();
+      handleApiResponse(result);
+      return true;
     } catch (error) {
+      console.error('Token validation error:', error);
       return false;
     }
   }
@@ -381,33 +494,37 @@ class AuthManagerImpl implements AuthManager {
       throw new Error('用户未登录');
     }
 
-    const response = await fetch(`${this.baseURL}/user/change-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ oldPassword, newPassword }),
-    });
+    try {
+      const response = await fetch(`${this.baseURL}/user/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '修改密码失败');
+      const result: ApiResponse<any> = await response.json();
+      handleApiResponse(result);
+    } catch (error) {
+      handleApiError(error);
     }
   }
 
-  async resetPassword(email: string): Promise<void> {
-    const response = await fetch(`${this.baseURL}/auth/reset-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    });
+  async resetPassword(phone: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '重置密码失败');
+      const result: ApiResponse<any> = await response.json();
+      handleApiResponse(result);
+    } catch (error) {
+      handleApiError(error);
     }
   }
 }

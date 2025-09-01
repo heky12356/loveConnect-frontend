@@ -10,7 +10,7 @@ import {
 
 // AI聊天请求消息接口
 export interface AiChatRequest {
-  type: 'voice' | 'text';
+  type: 'user_voice' | 'user_text';
   voiceBase64?: string;
   text?: string;
   aiRoleId: string;
@@ -21,7 +21,7 @@ export interface AiChatResponse {
   code: number;
   msg: string;
   data: {
-    type: 'voice' | 'text';
+    type: 'ai_response';
     userText: string;
     aiText: string;
     aiVoiceBase64?: string;
@@ -79,9 +79,17 @@ class WebSocketManagerImpl implements WebSocketManager {
     };
   }
 
-  static getInstance(url: string = 'ws://localhost:8080/ws/chat'): WebSocketManagerImpl {
+  static getInstance(url?: string, uid?: string): WebSocketManagerImpl {
+    // 构建完整的WebSocket URL，包含用户标识
+    const baseUrl = url || 'ws://localhost:8080/ws/chat';
+    const fullUrl = uid ? `${baseUrl}?uid=${uid}` : baseUrl;
+    
     if (!WebSocketManagerImpl.instance) {
-      WebSocketManagerImpl.instance = new WebSocketManagerImpl(url);
+      WebSocketManagerImpl.instance = new WebSocketManagerImpl(fullUrl);
+    } else if (WebSocketManagerImpl.instance.url !== fullUrl) {
+      // 如果URL发生变化，重新创建实例
+      WebSocketManagerImpl.instance.disconnect();
+      WebSocketManagerImpl.instance = new WebSocketManagerImpl(fullUrl);
     }
     return WebSocketManagerImpl.instance;
   }
@@ -483,9 +491,9 @@ class WebSocketManagerMock implements WebSocketManager {
   private mockResponses: AiChatResponse[] = [
     {
       code: 200,
-      msg: '成功',
+      msg: '处理成功',
       data: {
-        type: 'text',
+        type: 'ai_response',
         userText: '你好',
         aiText: '你好！很高兴见到你，有什么我可以帮助你的吗？',
         aiRoleId: 'mock-ai-1'
@@ -493,9 +501,9 @@ class WebSocketManagerMock implements WebSocketManager {
     },
     {
       code: 200,
-      msg: '成功',
+      msg: '处理成功',
       data: {
-        type: 'voice',
+        type: 'ai_response',
         userText: '今天天气怎么样？',
         aiText: '今天天气很不错，阳光明媚，适合外出活动。',
         aiVoiceBase64: 'mock-voice-base64-data',
@@ -577,8 +585,8 @@ class WebSocketManagerMock implements WebSocketManager {
           data: {
             ...randomResponse.data,
             aiRoleId: message.aiRoleId,
-            userText: message.type === 'text' ? (message.text || '') : '语音消息',
-            type: message.type
+            userText: message.type === 'user_text' ? (message.text || '') : '语音消息',
+            type: 'ai_response'
           }
         };
         
@@ -679,13 +687,13 @@ class WebSocketManagerMock implements WebSocketManager {
 // 根据环境变量决定使用哪个实现
 const mod = 'development';
 
-export function getWebSocketManager(): WebSocketManager {
+export function getWebSocketManager(uid?: string): WebSocketManager {
   if (mod === 'development') {
     return WebSocketManagerMock.getInstance();
   } else {
-    return WebSocketManagerImpl.getInstance();
+    return WebSocketManagerImpl.getInstance(undefined, uid);
   }
 }
 
-// 默认导出
+// 默认导出不带参数的实例，保持向后兼容
 export default getWebSocketManager();

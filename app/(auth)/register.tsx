@@ -22,7 +22,6 @@ const { width, height } = Dimensions.get('window');
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
     password: '',
     confirmPassword: '',
     phone: '',
@@ -36,21 +35,21 @@ export default function RegisterPage() {
   };
 
   const validateForm = () => {
-    const { name, email, password, confirmPassword, phone } = formData;
+    const { name, password, confirmPassword, phone } = formData;
     
     if (!name.trim()) {
       Alert.alert('提示', '请输入姓名');
       return false;
     }
     
-    if (!email.trim()) {
-      Alert.alert('提示', '请输入邮箱地址');
+    if (!phone.trim()) {
+      Alert.alert('提示', '请输入手机号码');
       return false;
     }
     
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('提示', '请输入有效的邮箱地址');
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(phone)) {
+      Alert.alert('提示', '请输入正确的11位手机号');
       return false;
     }
     
@@ -69,17 +68,6 @@ export default function RegisterPage() {
       return false;
     }
     
-    if (!phone.trim()) {
-      Alert.alert('提示', '请输入手机号码');
-      return false;
-    }
-    
-    const phoneRegex = /^1[3-9]\d{9}$/;
-    if (!phoneRegex.test(phone)) {
-      Alert.alert('提示', '请输入有效的手机号码');
-      return false;
-    }
-    
     return true;
   };
 
@@ -90,14 +78,9 @@ export default function RegisterPage() {
       clearError();
       await register({
         name: formData.name.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
         phone: formData.phone.trim(),
-        gender: '未设置', // 默认值，用户可以后续在个人资料中修改
-        date: '1990-01-01', // 默认生日，用户可以后续修改
-        avatar: '', // 默认空头像，用户可以后续上传
-        address: '未设置', // 默认地址，用户可以后续修改
-        urgentPhone: '', // 默认空紧急联系人，用户可以后续设置
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
       });
       Alert.alert('成功', '注册成功！', [
         { text: '确定', onPress: () => router.replace('/') }
@@ -139,20 +122,6 @@ export default function RegisterPage() {
                 value={formData.name}
                 onChangeText={(value) => updateFormData('name', value)}
                 autoCapitalize="words"
-                autoCorrect={false}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <MaterialIcons name="email" size={width * 0.06} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="邮箱地址"
-                placeholderTextColor="#999"
-                value={formData.email}
-                onChangeText={(value) => updateFormData('email', value)}
-                keyboardType="email-address"
-                autoCapitalize="none"
                 autoCorrect={false}
               />
             </View>

@@ -28,12 +28,12 @@ export const useAuthManager = () => {
   }, [user, isInitialized, infoManager]);
 
   // 登录函数
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = async (phone: string, password: string) => {
     setIsProcessing(true);
     setError(null);
     
     try {
-      const { user: userData, token } = await authManager.login(email, password);
+      const { user: userData, token } = await authManager.login(phone, password);
       await login(userData, token);
       return userData;
     } catch (error) {
@@ -48,14 +48,9 @@ export const useAuthManager = () => {
   // 注册函数
   const handleRegister = async (userData: {
     name: string;
-    gender: string;
-    date: string;
-    avatar: string;
     phone: string;
-    address: string;
-    urgentPhone: string;
-    email: string;
     password: string;
+    confirmPassword: string;
   }) => {
     setIsProcessing(true);
     setError(null);
@@ -142,12 +137,12 @@ export const useAuthManager = () => {
   };
 
   // 重置密码
-  const handleResetPassword = async (email: string) => {
+  const handleResetPassword = async (phone: string) => {
     setIsProcessing(true);
     setError(null);
     
     try {
-      await authManager.resetPassword(email);
+      await authManager.resetPassword(phone);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '重置密码失败';
       setError(errorMessage);
