@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../contexts/AuthContext';
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
 import { getUploadManager } from './uploadManager';
+import { UserIsolatedStorage, migrateStorageData } from '../utils/storageUtils';
 
 // 为了向后兼容，保持原有的 Info 接口
 interface Info {
@@ -35,6 +36,7 @@ interface InfoManager {
 
 // 存储键名
 const STORAGE_KEY = '@loveConnect:userInfo';
+const BASE_STORAGE_KEY = 'userInfo';
 
 // 默认用户信息
 let defaultInfo: Info = {
@@ -68,12 +70,22 @@ class InfoManagerText implements InfoManager {
     if (this.initialized) return;
     
     try {
-      const storedInfo = await AsyncStorage.getItem(STORAGE_KEY);
+      const storedInfo = await UserIsolatedStorage.getItem(BASE_STORAGE_KEY);
       if (storedInfo) {
         currentInfo = JSON.parse(storedInfo);
       } else {
-        // 如果没有存储的信息，使用默认信息并保存
-        await this.saveToStorage();
+        // 尝试迁移旧数据
+        const oldData = await AsyncStorage.getItem(STORAGE_KEY);
+        if (oldData) {
+          currentInfo = JSON.parse(oldData);
+          // 迁移到新格式
+          await this.saveToStorage();
+          await AsyncStorage.removeItem(STORAGE_KEY);
+          console.log('已迁移用户信息到新的存储格式');
+        } else {
+          // 如果没有存储的信息，使用默认信息并保存
+          await this.saveToStorage();
+        }
       }
     } catch (error) {
       console.error('初始化用户信息失败:', error);
@@ -86,7 +98,7 @@ class InfoManagerText implements InfoManager {
   // 保存到本地存储
   private async saveToStorage() {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(currentInfo));
+      await UserIsolatedStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(currentInfo));
       ChangeFlag = !ChangeFlag;
     } catch (error) {
       console.error('保存用户信息失败:', error);

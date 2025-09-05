@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../contexts/AuthContext';
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
+import { UserIsolatedStorage } from '../utils/storageUtils';
 
 // const mod = "development";
 const mod = "production";
@@ -123,6 +124,10 @@ class AuthManagerMock implements AuthManager {
   }
 
   async logout(): Promise<void> {
+    // 获取当前用户手机号，用于清除用户数据
+    const currentUser = await this.getCurrentUser();
+    const userPhone = currentUser?.phone;
+    
     this.currentToken = null;
     await Promise.all([
       AsyncStorage.removeItem(STORAGE_KEYS.USER),
@@ -130,6 +135,12 @@ class AuthManagerMock implements AuthManager {
       AsyncStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN),
       AsyncStorage.removeItem(STORAGE_KEYS.IS_LOGGED_IN),
     ]);
+    
+    // 清除该用户的所有本地数据
+    if (userPhone) {
+      await UserIsolatedStorage.clearUserData(userPhone);
+      console.log(`已清除用户 ${userPhone} 的所有本地数据`);
+    }
   }
 
   async getCurrentUser(): Promise<User | null> {
@@ -327,6 +338,10 @@ class AuthManagerImpl implements AuthManager {
   }
 
   async logout(): Promise<void> {
+    // 获取当前用户手机号，用于清除用户数据
+    const currentUser = await this.getCurrentUser();
+    const userPhone = currentUser?.phone;
+    
     const token = await this.getToken();
     if (token) {
       try {
@@ -350,6 +365,12 @@ class AuthManagerImpl implements AuthManager {
       AsyncStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN),
       AsyncStorage.removeItem(STORAGE_KEYS.IS_LOGGED_IN),
     ]);
+    
+    // 清除该用户的所有本地数据
+    if (userPhone) {
+      await UserIsolatedStorage.clearUserData(userPhone);
+      console.log(`已清除用户 ${userPhone} 的所有本地数据`);
+    }
   }
 
   async getCurrentUser(): Promise<User | null> {

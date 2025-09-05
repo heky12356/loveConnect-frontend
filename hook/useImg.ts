@@ -1,12 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { UserIsolatedStorage } from '../utils/storageUtils';
 
 const STORAGE_KEY = "ImgMap";
+const BASE_STORAGE_KEY = "ImgMap";
 
 let imgMap = new Map();
 
 const loadItems = async () => {
   try {
-    const storedItems = await AsyncStorage.getItem(STORAGE_KEY);
+    // 尝试从新的用户隔离存储中获取数据
+    const storedItems = await UserIsolatedStorage.getItem(BASE_STORAGE_KEY);
     if (storedItems) {
       imgMap = new Map(Object.entries(JSON.parse(storedItems)));
     }
@@ -22,7 +25,7 @@ imgMap.set("001", "https://pan.heky.top/tmp/profile.png");
 export const useImg = () => {
   const addImg = async (key: string, img: string) => {
     imgMap.set(key, img);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(imgMap)));
+    await UserIsolatedStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(Object.fromEntries(imgMap)));
   };
   const getImg = (key: string) => {
     return imgMap.get(key);

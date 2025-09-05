@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { UserIsolatedStorage } from '../utils/storageUtils';
 
 // 用户信息接口
 export interface User {
@@ -133,11 +134,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 登出函数
   const logout = async () => {
     try {
+      // 获取当前用户手机号，用于清除用户数据
+      const userPhone = authState.user?.phone;
+      
       await Promise.all([
         AsyncStorage.removeItem(STORAGE_KEYS.USER),
         AsyncStorage.removeItem(STORAGE_KEYS.TOKEN),
         AsyncStorage.removeItem(STORAGE_KEYS.IS_LOGGED_IN),
       ]);
+
+      // 清除该用户的所有本地数据
+      if (userPhone) {
+        await UserIsolatedStorage.clearUserData(userPhone);
+        console.log(`已清除用户 ${userPhone} 的所有本地数据`);
+      }
 
       setAuthState({
         user: null,

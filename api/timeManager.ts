@@ -1,8 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { UserIsolatedStorage } from '../utils/storageUtils';
 
 const STORAGE_KEY = "Times";
+const BASE_STORAGE_KEY = "Times";
 
 export interface TimeItem {
   id: string;
@@ -21,7 +23,8 @@ let timeItems: TimeItem[] = [];
 export class timeManager {
   static async initialize() {
     try {
-      const storedItems = await AsyncStorage.getItem(STORAGE_KEY);
+      // 尝试从新的用户隔离存储中获取数据
+      const storedItems = await UserIsolatedStorage.getItem(BASE_STORAGE_KEY);
       if (storedItems) {
         timeItems = JSON.parse(storedItems);
       }
@@ -31,7 +34,7 @@ export class timeManager {
   }
   static async addTimeItem(item: TimeItem) {
     timeItems.push(item);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(timeItems));
+    await UserIsolatedStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(timeItems));
   }
   static async getTimeItems() {
     return timeItems;
@@ -40,16 +43,16 @@ export class timeManager {
     const index = timeItems.findIndex((i) => i.id === item.id);
     if (index !== -1) {
       timeItems[index] = item;
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(timeItems));
+      await UserIsolatedStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(timeItems));
     }
   }
   static async deleteTimeItem(id: string) {
     timeItems = timeItems.filter((item) => item.id !== id);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(timeItems));
+    await UserIsolatedStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(timeItems));
   }
   static async clearTimeItems() {
     timeItems = [];
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(timeItems));
+    await UserIsolatedStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(timeItems));
   }
 
   // 切换定时项的启用状态

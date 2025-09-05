@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { UserIsolatedStorage } from '../utils/storageUtils';
 
 const STORAGE_KEY = "ChatMap";
+const BASE_STORAGE_KEY = "ChatMap";
 
 // 消息结构体定义
 export interface Message {
@@ -36,7 +38,8 @@ class MsgManager {
     if (this.initialized) return;
     
     try {
-      const storedItems = await AsyncStorage.getItem(STORAGE_KEY);
+      // 尝试从新的用户隔离存储中获取数据
+      const storedItems = await UserIsolatedStorage.getItem(BASE_STORAGE_KEY);
       if (storedItems) {
         this.chatMap = new Map(Object.entries(JSON.parse(storedItems)));
       }
@@ -65,9 +68,9 @@ class MsgManager {
     const newMessages = [...messages, message]; // 创建新数组引用
     this.chatMap.set(name, newMessages);
     
-    // 持久化到AsyncStorage
+    // 持久化到用户隔离存储
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(this.chatMap)));
+      await UserIsolatedStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(Object.fromEntries(this.chatMap)));
     } catch (error) {
       console.error("保存数据失败:", error);
     }
@@ -82,9 +85,9 @@ class MsgManager {
   async clearMessages(name: string): Promise<void> {
     this.chatMap.delete(name);
     
-    // 持久化到AsyncStorage
+    // 持久化到用户隔离存储
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(this.chatMap)));
+      await UserIsolatedStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(Object.fromEntries(this.chatMap)));
     } catch (error) {
       console.error("保存数据失败:", error);
     }

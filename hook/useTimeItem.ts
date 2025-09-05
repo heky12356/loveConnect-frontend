@@ -4,8 +4,10 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState } from "react";
+import { UserIsolatedStorage } from '../utils/storageUtils';
 
 const STORAGE_KEY = "timeItems";
+const BASE_STORAGE_KEY = "timeItems";
 
 interface Item {
   title: string;
@@ -16,7 +18,8 @@ let globalState: Item[] = [];
 
 const loadItems = async () => {
   try {
-    const storedItems = await AsyncStorage.getItem(STORAGE_KEY);
+    // 尝试从新的用户隔离存储中获取数据
+    const storedItems = await UserIsolatedStorage.getItem(BASE_STORAGE_KEY);
     if (storedItems) {
       globalState = JSON.parse(storedItems);
     }
@@ -28,7 +31,7 @@ const loadItems = async () => {
 // 保存数据到本地存储
 const saveItems = async (newItems: Item[]) => {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newItems));
+    await UserIsolatedStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(newItems));
   } catch (error) {
     console.error("保存数据失败:", error);
   }
