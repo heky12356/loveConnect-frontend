@@ -139,12 +139,12 @@ export default function AddAiPage() {
         <View style={styles.content}>
           <AiListAddItem tag="名称" label="名称" onchange={setName} />
           <AiListAddItem tag="关系" label="关系" onchange={setRole} />
-          <AiListAddItem
+          {/* <AiListAddItem
             tag={voice}
             label=""
             newPage={true}
             path="/(aiListPage)/voiceSetPage"
-          />
+          /> */}
         </View>
         <View style={styles.returnButton}>
           <ReturnButton />

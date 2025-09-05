@@ -20,8 +20,24 @@ export default function AiListPage() {
   // console.log(exampleImg);
   useEffect(() => {
     async function fetchData() {
-      const data = await getAiManager().getAiList();
-      setAiList(data);
+      try {
+        console.log('开始获取AI列表...');
+        const data = await getAiManager().getAiList();
+        console.log('获取到的AI数据:', data);
+        console.log('AI数据长度:', data?.length || 0);
+        setAiList(data || []);
+      } catch (error) {
+        console.error('获取AI列表失败:', error);
+        if (error instanceof Error) {
+          console.error('错误详情:', {
+            name: error.name,
+            message: error.message,
+            code: (error as any).code,
+            msg: (error as any).msg
+          });
+        }
+        setAiList([]);
+      }
     }
     fetchData();
   }, []);

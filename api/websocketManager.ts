@@ -1,11 +1,10 @@
-import { 
-  NotificationData, 
-  WebSocketMessage, 
-  ConnectionState, 
-  WebSocketError, 
-  QueuedMessage, 
-  WebSocketState, 
-  HeartbeatConfig 
+import {
+  ConnectionState,
+  NotificationData,
+  QueuedMessage,
+  WebSocketError,
+  WebSocketMessage,
+  WebSocketState
 } from '@/types/websocket';
 
 // AI聊天请求消息接口
@@ -14,6 +13,7 @@ export interface AiChatRequest {
   voiceBase64?: string;
   text?: string;
   aiRoleId: string;
+  phone: string;
 }
 
 // AI聊天响应消息接口
@@ -59,14 +59,7 @@ class WebSocketManagerImpl implements WebSocketManager {
   private connectionPromise: Promise<void> | null = null;
   private messageQueue: QueuedMessage[] = [];
   private state: WebSocketState;
-  private heartbeatConfig: HeartbeatConfig = {
-    interval: 30000, // 30秒
-    timeout: 5000,   // 5秒超时
-    maxMissed: 3     // 最多错过3次
-  };
-  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
-  private heartbeatTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
-  private missedHeartbeats = 0;
+
 
   private constructor(url: string) {
     this.url = url;
@@ -81,9 +74,11 @@ class WebSocketManagerImpl implements WebSocketManager {
 
   static getInstance(url?: string, uid?: string): WebSocketManagerImpl {
     // 构建完整的WebSocket URL，包含用户标识
-    const baseUrl = url || 'ws://localhost:8080/ws/chat';
-    const fullUrl = uid ? `${baseUrl}?uid=${uid}` : baseUrl;
+    const baseUrl = url || 'ws://192.168.1.6:8080/ws/chat/test';
+    const fullUrl = uid ? `${baseUrl}/${uid}` : baseUrl;
     
+    console.log('WebSocket URL:', fullUrl);
+
     if (!WebSocketManagerImpl.instance) {
       WebSocketManagerImpl.instance = new WebSocketManagerImpl(fullUrl);
     } else if (WebSocketManagerImpl.instance.url !== fullUrl) {
@@ -140,7 +135,6 @@ class WebSocketManagerImpl implements WebSocketManager {
           this.isConnecting = false;
           this.connectionPromise = null;
           this.reconnectAttempts = 0;
-          this.missedHeartbeats = 0;
           
           this.updateState({
             isConnected: true,
@@ -150,7 +144,6 @@ class WebSocketManagerImpl implements WebSocketManager {
             lastConnectedAt: Date.now()
           });
           
-          this.startHeartbeat();
           this.flushMessageQueue();
           this.emit('connected', null);
           resolve();
@@ -160,12 +153,6 @@ class WebSocketManagerImpl implements WebSocketManager {
           try {
             const message: WebSocketMessage = JSON.parse(event.data);
             console.log('收到消息:', message);
-            
-            // 处理心跳响应
-            if (message.type === 'pong') {
-              this.handleHeartbeatResponse();
-              return;
-            }
             
             this.handleMessage(message);
           } catch (error) {
@@ -178,7 +165,6 @@ class WebSocketManagerImpl implements WebSocketManager {
           console.log('WebSocket 连接关闭', event.code, event.reason);
           this.isConnecting = false;
           this.connectionPromise = null;
-          this.stopHeartbeat();
           
           this.updateState({
             isConnected: false,
@@ -231,7 +217,6 @@ class WebSocketManagerImpl implements WebSocketManager {
 
   // 断开连接
   disconnect() {
-    this.stopHeartbeat();
     this.connectionPromise = null;
     
     if (this.ws) {
@@ -330,12 +315,25 @@ class WebSocketManagerImpl implements WebSocketManager {
   }
 
   // 处理接收到的消息
-  private handleMessage(message: WebSocketMessage) {
-    this.emit(message.type, message.data);
-    
-    // 处理通知类型消息
-    if (message.type === 'notification') {
-      this.handleNotification(message.data);
+  private handleMessage(message: any) {
+    // 检查是否是标准的WebSocketMessage格式
+    if (message.type && message.data !== undefined) {
+      this.emit(message.type, message.data);
+      
+      // 处理通知类型消息
+      if (message.type === 'notification') {
+        this.handleNotification(message.data);
+      }
+    } 
+    // 检查是否是AI聊天响应格式（后端直接返回的格式）
+    else if (message.code !== undefined && message.msg !== undefined && message.data && message.data.type === 'ai_response') {
+      // 将后端格式转换为前端期望的格式并触发chat_response事件
+      console.log('检测到AI聊天响应，转换格式:', message);
+      this.emit('chat_response', message);
+    }
+    // 其他格式的消息
+    else {
+      console.warn('收到未知格式的消息:', message);
     }
   }
 
@@ -423,59 +421,6 @@ class WebSocketManagerImpl implements WebSocketManager {
       } catch (error) {
         console.error('发送队列消息失败:', error);
       }
-    }
-  }
-
-  // 心跳机制
-  private startHeartbeat(): void {
-    this.stopHeartbeat();
-    
-    this.heartbeatTimer = setInterval(() => {
-      if (this.isConnected()) {
-        this.sendHeartbeat();
-      }
-    }, this.heartbeatConfig.interval);
-  }
-
-  private stopHeartbeat(): void {
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
-      this.heartbeatTimer = null;
-    }
-    
-    if (this.heartbeatTimeoutTimer) {
-      clearTimeout(this.heartbeatTimeoutTimer);
-      this.heartbeatTimeoutTimer = null;
-    }
-  }
-
-  private sendHeartbeat(): void {
-    if (!this.isConnected()) return;
-    
-    try {
-      this.ws!.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
-      
-      // 设置心跳超时
-      this.heartbeatTimeoutTimer = setTimeout(() => {
-        this.missedHeartbeats++;
-        console.warn(`心跳超时 (${this.missedHeartbeats}/${this.heartbeatConfig.maxMissed})`);
-        
-        if (this.missedHeartbeats >= this.heartbeatConfig.maxMissed) {
-          console.error('心跳检测失败，断开连接');
-          this.ws?.close(1000, '心跳检测失败');
-        }
-      }, this.heartbeatConfig.timeout);
-    } catch (error) {
-      console.error('发送心跳失败:', error);
-    }
-  }
-
-  private handleHeartbeatResponse(): void {
-    this.missedHeartbeats = 0;
-    
-    if (this.heartbeatTimeoutTimer) {
-      clearTimeout(this.heartbeatTimeoutTimer);
-      this.heartbeatTimeoutTimer = null;
     }
   }
 }
@@ -685,7 +630,8 @@ class WebSocketManagerMock implements WebSocketManager {
 }
 
 // 根据环境变量决定使用哪个实现
-const mod = 'development';
+// const mod = 'development';
+const mod = 'production';
 
 export function getWebSocketManager(uid?: string): WebSocketManager {
   if (mod === 'development') {

@@ -1,12 +1,15 @@
-import { AiItem, getAiManager } from "@/api/aiManeger";
+import { getAiManager, VoiceInitResponse, VoiceSaveRequest } from "@/api/aiManeger";
+import { getAuthManager } from "@/api/authManager";
 import CircleButton from "@/components/circleButton";
 import EndButton from "@/components/endButton";
 import ReturnButton from "@/components/returnButton";
 import Feather from "@expo/vector-icons/Feather";
+import * as FileSystem from 'expo-file-system';
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Dimensions,
   Image,
   Pressable,
@@ -14,6 +17,7 @@ import {
   Text,
   View,
 } from "react-native";
+
 const { height, width } = Dimensions.get("window");
 
 const guideLogo = require("@/assets/images/feedbackLogo.png");
@@ -63,7 +67,12 @@ const Step2 = ({ setStep }: { setStep: (step: number) => void }) => {
   );
 };
 
-const Step3 = () => {
+const Step3 = ({
+  setVoice,
+}: {
+  setVoice: (voice: string) => void;
+}) => {
+
   return (
     <View style={styles.content}>
       <Text style={styles.guideText}> 接下来让ta读一下下面的话吧 </Text>
@@ -73,24 +82,64 @@ const Step3 = () => {
       <Text style={styles.hintText}>
         请尽量在安静的环境里录入，太嘈杂的环境会导致AI效果不够好哦！
       </Text>
-      <CircleButton bgColor="#FFF6AF" />
+      <CircleButton bgColor="#FFF6AF" onRecordingComplete={setVoice}/>
     </View>
   );
 };
 
-const Step4 = ({ setStep }: { setStep: (step: number) => void }) => {
+const Step4 = ({
+  voiceBase64,
+  name
+}: {
+  voiceBase64: string;
+  name: string;
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setStep(5);
-    }, 1000);
-    return () => {
-      clearTimeout(timer);
+    const initAiVoice = async () => {
+      if (!voiceBase64) return;
+      
+      setIsLoading(true);
+      try {
+        const authManager = getAuthManager();
+        const token = await authManager.getToken();
+        
+        const response = await fetch('http://192.168.1.6:8080/ai/voice/init', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            base64Audio: voiceBase64,
+            relation: name, // 可以根据需要修改
+          })
+        });
+        
+        const result = await response.json();
+        console.log('AI声音初始化接口返回值:', result);
+        
+        if (result.code === 200) {
+          console.log('AI角色创建成功:', result.message);
+        } else {
+          console.error('AI角色创建失败:', result.message);
+        }
+      } catch (error) {
+        console.error('请求AI声音初始化接口失败:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
-  }, []);
+    
+    initAiVoice();
+  }, [voiceBase64]);
 
   return (
     <View style={styles.content}>
-      <Text style={styles.guideText}> 请耐心等待哦 ~ </Text>
+      <Text style={styles.guideText}> 
+        {isLoading ? '正在创建AI角色，请耐心等待...' : '正在创建AI角色，请耐心等待...'} 
+      </Text>
     </View>
   );
 };
@@ -98,6 +147,10 @@ const Step4 = ({ setStep }: { setStep: (step: number) => void }) => {
 const Step5 = () => {
   return (
     <View style={styles.content}>
+      <Text style={styles.guideText}> 恭喜你！AI角色创建成功 </Text>
+      <Text style={styles.hintText}>
+        您的专属AI已经准备就绪，快去体验吧！
+      </Text>
       <Pressable
         style={styles.EndButton}
         onPress={() => {
@@ -112,47 +165,45 @@ const Step5 = () => {
 };
 
 const SkipView = ({ setStep, role, profileImg }: { setStep: (step: number) => void, role: string, profileImg: string }) => {
+  const handleConfirm = async () => {
+    try {
+      // 获取当前用户信息
+      const authManager = getAuthManager();
+      const currentUser = await authManager.getCurrentUser();
+      
+      if (!currentUser) {
+        Alert.alert('错误', '用户未登录');
+        return;
+      }
+
+      const voiceConfig: VoiceSaveRequest = {
+        userId: parseInt(currentUser.phone), // 使用手机号作为用户ID
+        voiceId: "default", // 使用默认音色ID
+        relation: role,
+        originalAudioPath: "",
+        simulatedAudioPath: "",
+      };
+      
+      await getAiManager().saveVoiceConfig(voiceConfig);
+      console.log("使用默认音色配置成功");
+      Alert.alert('成功', 'AI角色创建成功！', [
+        { text: '确定', onPress: () => router.push("/(aiPage)/firstAttentionPage") }
+      ]);
+    } catch (error) {
+      console.error("保存默认音色配置失败:", error);
+      Alert.alert('错误', '创建AI失败，请重试', [
+        { text: '确定', onPress: () => router.push("/(aiPage)/firstAttentionPage") }
+      ]);
+    }
+  };
+
   return (
     <View style={styles.content}>
       <Text style={styles.guideText}> 接下来将启动<Text style={{color:"red"}}>系统默认音色</Text>，确定吗？ </Text>
       <View style={styles.buttonBox}>
         <Pressable
           style={styles.normalButton}
-          onPress={async () => {
-            try {
-              // 创建AI项目
-              const aiManager = getAiManager();
-              const newAiItem: AiItem = {
-                id: `ai_${Date.now()}`,
-                name: role,
-                img: profileImg || "https://pan.heky.top/tmp/profile.png",
-                voice: "系统默认音色",
-              };
-              
-              await aiManager.createAiItem(newAiItem);
-              
-              // 跳转到AI页面
-              interface Data {
-                name: string;
-              }
-              const data: Data = {
-                name: role,
-              }
-              const params = encodeURIComponent(JSON.stringify(data));
-              router.push(`/(aiPage)/aiPage?data=${params}`);
-            } catch (error) {
-              console.error('创建AI项目失败:', error);
-              // 即使创建失败也继续跳转
-              interface Data {
-                name: string;
-              }
-              const data: Data = {
-                name: role,
-              }
-              const params = encodeURIComponent(JSON.stringify(data));
-              router.push(`/(aiPage)/aiPage?data=${params}`);
-            }
-          }}
+          onPress={handleConfirm}
         >
           <Text style={styles.ButtonText}> 确定 </Text>
         </Pressable>
@@ -197,11 +248,26 @@ const LoadingBar = () => {
 export default function AiVoiceSetPage() {
   const [step, setStep] = useState<number>(0);
   const [role, setRole] = useState<string>("");
-  const [voice, setVoice] = useState<string>("");
   const [profileImg, setProfileImg] = useState<string>("");
+  const [voice, setVoice] = useState<string>("");
+  const [voiceInitData, setVoiceInitData] = useState<VoiceInitResponse | null>(null);
+  const [voiceBase64, setVoiceBase64] = useState<string>("");
   const data = useLocalSearchParams<{
     data: string;
   }>();
+
+  // 将音频文件转换为Base64
+  const audioToBase64 = async (uri: string): Promise<string> => {
+    try {
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      return base64;
+    } catch (error) {
+      console.error("音频转Base64失败:", error);
+      throw error;
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -220,6 +286,24 @@ export default function AiVoiceSetPage() {
       setProfileImg(uncodeData.image);
     }
   }, []);
+
+  useEffect(() => {
+    // console.log(voice)
+    const test = async () => {
+      const base64 = await audioToBase64(voice);
+      setVoiceBase64(base64);
+      // console.log(base64);
+    }
+    if (voice !== "") {
+      test();
+    }
+  }, [voice]);
+
+  const handleVoiceInit = (voiceData: VoiceInitResponse) => {
+    setVoiceInitData(voiceData);
+    // 音色初始化成功后自动进入下一步
+    setStep(4);
+  };
 
   return (
     <LinearGradient
@@ -258,8 +342,8 @@ export default function AiVoiceSetPage() {
           )}
           {step === 1 && <Step1 setStep={setStep} />}
           {step === 2 && <Step2 setStep={setStep} />}
-          {step === 3 && <Step3 />}
-          {step === 4 && <Step4 setStep={setStep} />}
+          {step === 3 && <Step3 setVoice={setVoice} />}
+          {step === 4 && <Step4 voiceBase64={voiceBase64} name={role} />}
           {step === 5 && <Step5 />}
           {step === 6 && <SkipView setStep={setStep} role={role} profileImg={profileImg} />}
         </View>

@@ -10,6 +10,8 @@ export interface NotificationData {
   message: string;
   type: 'info' | 'warning' | 'error' | 'success';
   timestamp?: number;
+  aiName?: string; // 用于标识哪个AI发送了消息
+  data?: any; // 额外的数据字段
 }
 
 // WebSocket连接状态
@@ -44,11 +46,4 @@ export interface WebSocketState {
   error: WebSocketError | null;
   reconnectAttempts: number;
   lastConnectedAt: number | null;
-}
-
-// 心跳配置
-export interface HeartbeatConfig {
-  interval: number;
-  timeout: number;
-  maxMissed: number;
 }

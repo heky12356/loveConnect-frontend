@@ -1,10 +1,10 @@
 import { router } from "expo-router";
 import {
-  Dimensions,
-  ImageBackground,
-  Pressable,
-  StyleSheet,
-  Text,
+    Dimensions,
+    ImageBackground,
+    Pressable,
+    StyleSheet,
+    Text,
 } from "react-native";
 
 type Prop = {

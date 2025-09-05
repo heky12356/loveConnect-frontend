@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../contexts/AuthContext';
-import { ApiResponse, handleApiResponse, handleApiError, authenticatedApiRequest } from './apiUtils';
+import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
 
-const mod = "development";
-// const mod = "production";
+// const mod = "development";
+const mod = "production";
 
 // 认证管理器接口
 interface AuthManager {
@@ -261,12 +261,13 @@ class AuthManagerMock implements AuthManager {
 class AuthManagerImpl implements AuthManager {
   private baseURL: string;
 
-  constructor(baseURL: string = 'http://localhost:8080') {
+  constructor(baseURL: string = 'http://192.168.1.6:8080') {
     this.baseURL = baseURL;
   }
 
   async login(phone: string, password: string): Promise<{ user: User; token: string }> {
     try {
+      console.log("login", phone, password);
       const response = await fetch(`${this.baseURL}/user/login`, {
         method: 'POST',
         headers: {
@@ -277,6 +278,7 @@ class AuthManagerImpl implements AuthManager {
 
       const result: ApiResponse<string> = await response.json();
       const token = handleApiResponse(result);
+      console.log(result);
       
       // 获取用户信息
       const userInfo = await this.getUserInfo(token);
@@ -290,6 +292,7 @@ class AuthManagerImpl implements AuthManager {
 
       return { user: userInfo, token };
     } catch (error) {
+      console.error('登录失败:', error);
       handleApiError(error);
     }
   }
@@ -537,6 +540,7 @@ export const getAuthManager = (): AuthManager => {
   if (isDevelopment) {
     return new AuthManagerMock();
   } else {
+    console.log('使用生产环境认证管理器');
     return new AuthManagerImpl();
   }
 };

@@ -1,10 +1,12 @@
 import AiListItem from "@/components/aiListItem";
 import ReturnButton from "@/components/returnButton";
 import { useImg } from "@/hook/useImg";
+import { useWebSocket } from "@/hook/useWebSocket";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
@@ -12,6 +14,54 @@ const GlobalFontSize = width * 0.3;
 const exampleImg = useImg().getImg("001");
 
 export default function MsgPage() {
+  const { notifications, sendMessage } = useWebSocket();
+  const [aiItems, setAiItems] = useState<{ name: string; img: string; postNum: number; hasNewMessage: boolean }[]>([]);
+
+  useEffect(() => {
+    console.log(notifications);
+    // 当收到WebSocket消息时，更新对应的AI项状态
+    if (notifications.length > 0) {
+      const latestNotification = notifications[notifications.length - 1];
+      // 优先使用顶级aiName属性，如果没有则尝试从data中获取
+      const aiName = latestNotification.aiName || (latestNotification.data && latestNotification.data.aiName);
+      if (aiName) {
+        setAiItems(prev => 
+          prev.map(item => 
+            item.name === aiName 
+              ? { ...item, hasNewMessage: true, postNum: (item.postNum || 0) + 1 }
+              : item
+          )
+        );
+      }
+    }
+  }, [notifications]);
+
+  const handleAiItemClick = (aiName: string) => {
+    // 点击AI项时，清除新消息状态
+    setAiItems(prev => 
+      prev.map(item => 
+        item.name === aiName 
+          ? { ...item, hasNewMessage: false }
+          : item
+      )
+    );
+  };
+
+  const testNotification = () => {
+    const testMessage = {
+      id: Date.now().toString(),
+      title: '新消息',
+      message: '您有一条来自女儿的新消息',
+      type: 'info' as const,
+      timestamp: Date.now(),
+      aiName: '女儿', // 指定哪个AI发送了消息
+      data: {
+        aiName: '女儿'
+      }
+    };
+    sendMessage(testMessage);
+  };
+
   return (
     <LinearGradient
       colors={["#FFD0D0", "#EDFFB8", "#FFFFFF", "#FFCBCB"]}
@@ -32,9 +82,22 @@ export default function MsgPage() {
           <Text style={styles.logoText}>消息通知</Text>
         </View>
         <View style={styles.content}>
-          <AiListItem name="女儿" img={exampleImg} postNum={11} />
-          <AiListItem name="儿子" />
-          <AiListItem name="儿媳妇" />
+          {aiItems.map((item, index) => (
+            <AiListItem 
+              key={index}
+              name={item.name} 
+              img={item.img}
+              postNum={item.postNum}
+              hasNewMessage={item.hasNewMessage}
+              onPress={() => handleAiItemClick(item.name)}
+            />
+          ))}
+          
+          {/* 测试按钮 */}
+          <Pressable style={styles.testButton} onPress={testNotification}>
+            <Text style={styles.testButtonText}>测试新消息</Text>
+          </Pressable>
+          
           <Pressable
             style={styles.timeSetLink}
             onPress={() => {
@@ -92,6 +155,17 @@ const styles = StyleSheet.create({
   timeSetLinkText: {
     fontSize: width * 0.05,
     color: "#333",
+  },
+  testButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: width * 0.06,
+    paddingVertical: height * 0.015,
+    borderRadius: 8,
+  },
+  testButtonText: {
+    color: 'white',
+    fontSize: width * 0.04,
+    fontWeight: '600',
   },
   returnButton: {
     height: height * 0.13,

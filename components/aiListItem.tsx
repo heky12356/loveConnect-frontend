@@ -7,6 +7,8 @@ type Prop = {
     name?: string;
     img?: string;
     postNum?: number;
+    hasNewMessage?: boolean;
+    onPress?: () => void;
 }
 
 
@@ -15,8 +17,14 @@ interface AiListItemProps {
     img?: string;
 }
 
-export default function AiListItem({name, img, postNum}: Prop) {
+export default function AiListItem({name, img, postNum, hasNewMessage, onPress}: Prop) {
     const handlePress = () => {
+        // 如果有自定义onPress，先执行它
+        if (onPress) {
+            onPress();
+        }
+        
+        // 然后执行默认的导航逻辑
         const data : AiListItemProps = {
             name,
             img,
@@ -27,12 +35,13 @@ export default function AiListItem({name, img, postNum}: Prop) {
 
     return (
         <View style={styles.container}>
-            <Pressable style={styles.viewBox} onPress={handlePress}>
+            <Pressable style={[styles.viewBox, hasNewMessage && styles.newMessageBox]} onPress={handlePress}>
                 <View style={styles.profile}>
                     <Image source={{uri: img}} style={styles.profileImg} />
+                    {hasNewMessage && <View style={styles.newMessageIndicator} />}
                 </View>
                 <View style={styles.name}>
-                    <Text style={styles.nameText}>{name?name:"name"}</Text>
+                    <Text style={[styles.nameText, hasNewMessage && styles.newMessageText]}>{name?name:"name"}</Text>
                 </View>
                 {postNum?
                 <View style={styles.postPot}>
@@ -101,6 +110,24 @@ const styles = StyleSheet.create({
     postNum: {
         fontSize: width * 0.08,
         color: "white",
+    },
+    newMessageBox: {
+        borderWidth: 2,
+        borderColor: "#FF6A6A",
+        backgroundColor: "#FFF5F5",
+    },
+    newMessageIndicator: {
+        position: "absolute",
+        top: -2,
+        right: -2,
+        width: width * 0.04,
+        height: width * 0.04,
+        borderRadius: width * 0.02,
+        backgroundColor: "#FF6A6A",
+    },
+    newMessageText: {
+        fontWeight: "bold",
+        color: "#FF6A6A",
     }
 })
 

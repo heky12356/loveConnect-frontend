@@ -4,7 +4,6 @@ import NavBar from "@/components/NavBar";
 import AiLogoButton from "@/components/aiLogoButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFirstAttention } from "@/hook/getFirstAttention";
-import Feather from "@expo/vector-icons/Feather";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import Foundation from "@expo/vector-icons/Foundation";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -23,21 +22,18 @@ const handleTimingSetPress = () => {
   router.push("/(timingSet)/timingSet");
 };
 
-const handleActivitiesMapPress = () => {
-  router.push("/(activitiesMap)/activitiesMap");
-};
+// 删除：活动地图、学习乐园、好友群组 功能及跳转处理函数
+// const handleActivitiesMapPress = () => { router.push("/(activitiesMap)/activitiesMap"); } 
+// Remove unused handlers for deprecated features
+// (学习乐园、好友群组)
+// const handleStudyPagePress = () => { router.push("/(studyPage)/studyPage"); };
+// const handleFriendPress = () => { router.push("/(friendPage)/friendPage"); };
 
 const handleMsgPress = () => {
   router.push("/(msgPage)/msgPage");
 };
 
-const handleStudyPagePress = () => {
-  router.push("/(studyPage)/studyPage");
-};
 
-const handleFriendPress = () => {
-  router.push("/(friendPage)/friendPage");
-};
 
 const handlePhonePress = async () => {
   // 后面需要修改下逻辑，获取紧急联系人电话
@@ -68,7 +64,7 @@ const handlePhonePress = async () => {
 
 export default function Index() {
   const [isFirstAttention, setIsFirstAttention] = useFirstAttention();
-  const { user, isAuthenticated, logout, isInitialized } = useAuth();
+  const { user, isAuthenticated, isInitialized } = useAuth();
 
   // 检查认证状态，如果未登录则跳转到登录页面
   useEffect(() => {
@@ -76,10 +72,6 @@ export default function Index() {
       router.replace('/(auth)/login');
     }
   }, [isAuthenticated, isInitialized]);
-
-  const handleProfilePress = () => {
-    router.push('/(auth)/profile');
-  };
 
   // 如果未初始化或未认证，显示加载状态
   if (!isInitialized || !isAuthenticated || !user) {
@@ -114,13 +106,15 @@ export default function Index() {
         }}
       >
         <NavBar style={styles.navbar} />
-        <View style={styles.buttonContainer}>
-          <View
-            style={{
-              flexDirection: "row",
-              gap: GlobalGap,
-            }}
-          >
+        {/* 主要功能：AI问答 - 放在最显眼的位置 */}
+        <View style={styles.aiSection}>
+          <AiLogoButton label="" isFirstAttention={isFirstAttention} setIsFirstAttention={setIsFirstAttention} />
+        </View>
+        
+        {/* 底部功能区域 */}
+        <View style={styles.bottomSection}>
+          {/* 左下角：一键呼出 */}
+          <View style={styles.leftBottomSection}>
             <BigButton
               onPress={handlePhonePress}
               label={"一键呼出"}
@@ -131,64 +125,37 @@ export default function Index() {
                   color="black"
                 />
               }
-              backgroudColor="#d9e2ff"
-            />
-            <BigButton
-              onPress={handleActivitiesMapPress}
-              label={"活动地图"}
-              icon={
-                <Feather name="map-pin" size={GlobalFontSize} color="black" />
-              }
-              backgroudColor="#FFDEE2"
+              backgroudColor="#FFD1D1"
             />
           </View>
-          <View style={{ flexDirection: "row", gap: GlobalGap }}>
-            <BigButton
-              onPress={handleTimingSetPress}
-              label={"定时设置"}
-              icon={
-                <Fontisto
-                  name="heartbeat-alt"
-                  size={GlobalFontSize}
-                  color="black"
-                />
-              }
-              backgroudColor="#ADFFD7"
-            />
-            <BigButton
-              onPress={handleStudyPagePress}
-              label={"学习乐园"}
-              icon={
-                <Feather name="book-open" size={GlobalFontSize} color="black" />
-              }
-              backgroudColor="#FFE7A4"
-            />
-          </View>
-          <View style={{ flexDirection: "row", gap: GlobalGap }}>
+          
+          {/* 右下角：定时设置和消息通知 */}
+          <View style={styles.rightBottomSection}>
             <BigButton
               onPress={handleMsgPress}
               label={"消息通知"}
               icon={
                 <MaterialCommunityIcons
                   name="message-outline"
-                  size={GlobalFontSize}
+                  size={GlobalFontSize * 0.8}
                   color="black"
                 />
               }
               backgroudColor="#FFCDCD"
             />
             <BigButton
-              onPress={handleFriendPress}
-              label={"好友群组"}
+              onPress={handleTimingSetPress}
+              label={"定时设置"}
               icon={
-                <Feather name="users" size={GlobalFontSize} color="black" />
+                <Fontisto
+                  name="heartbeat-alt"
+                  size={GlobalFontSize * 0.8}
+                  color="black"
+                />
               }
-              backgroudColor="#D9D9D9"
+              backgroudColor="#ADFFD7"
             />
           </View>
-        </View>
-        <View style={styles.logo}>
-          <AiLogoButton label="有问题，问AI" isFirstAttention={isFirstAttention} setIsFirstAttention={setIsFirstAttention} />
         </View>
       </View>
     </LinearGradient>
@@ -196,18 +163,33 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  buttonContainer: {
-    height: height * 0.65,
+  aiSection: {
+    height: height * 0.5,
     justifyContent: "center",
     alignItems: "center",
-    gap: GlobalGap,
-    // backgroundColor: "blue",
+    paddingVertical: height * 0.02,
   },
-  logo: {
-    height: height * 0.22,
+  bottomSection: {
+    height: height * 0.37,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    // alignItems: "flex-end",
+    paddingHorizontal: GlobalGap,
+    paddingBottom: height * 0.05,
+    width: width,
+  },
+  leftBottomSection: {
+    flex: 0.4,
     justifyContent: "center",
     alignItems: "center",
-    // backgroundColor: "green",
+  },
+  rightBottomSection: {
+    flex: 0.4,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "flex-end",
+    flexWrap: "wrap",
+    gap: GlobalGap,
   },
   navbar: {
     width: width,

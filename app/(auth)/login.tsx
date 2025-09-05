@@ -55,6 +55,7 @@ export default function LoginPage() {
         { text: '确定', onPress: () => router.replace('/') }
       ]);
     } catch (error) {
+      console.log('登录BUG');
       Alert.alert('登录失败', error instanceof Error ? error.message : '登录失败，请重试');
     }
   };

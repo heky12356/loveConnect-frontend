@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import { getUploadManager } from './uploadManager';
 
 const mod = "development";
 // const mod = "production";
@@ -40,48 +41,21 @@ const getAuthToken = async (): Promise<string | null> => {
  */
 export const uploadImage = async (options: ImageUploadOptions): Promise<ImageUploadResponse> => {
   try {
-    // 1. 构建FormData
-    const formData = new FormData();
-    formData.append('image', {
+    // 创建File对象（在React Native环境中需要适配）
+    const file = {
       uri: options.uri,
       name: options.fileName || 'image.jpg',
       type: options.fileType || 'image/jpeg'
-    } as any);
+    } as any;
     
-    // 2. 获取认证token
-    const token = await getAuthToken();
+    // 使用新的UploadManager
+    const uploadManager = getUploadManager();
+    const url = await uploadManager.uploadImage(file);
     
-    // 3. 构建请求头
-    const headers: Record<string, string> = {
-      'Content-Type': 'multipart/form-data',
+    return {
+      success: true,
+      url: url
     };
-    
-    // 如果有token，添加认证头
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    // 4. 发送请求到后端
-    const response = await fetch(`${API_BASE_URL}/upload/image`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    });
-    
-    // 5. 处理响应
-    const result = await response.json();
-    
-    if (response.ok) {
-      return {
-        success: true,
-        url: result.url
-      };
-    } else {
-      return {
-        success: false,
-        message: result.msg || '上传失败'
-      };
-    }
   } catch (error) {
     console.error('图片上传错误:', error);
     return {

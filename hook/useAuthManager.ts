@@ -29,6 +29,7 @@ export const useAuthManager = () => {
 
   // 登录函数
   const handleLogin = async (phone: string, password: string) => {
+    console.log("handle login", phone, password);
     setIsProcessing(true);
     setError(null);
     

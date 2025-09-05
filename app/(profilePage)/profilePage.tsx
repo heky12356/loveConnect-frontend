@@ -1,10 +1,12 @@
 import { getInfoManager } from "@/api/infoManeger";
 import ReturnButton from "@/components/returnButton";
 import { MaterialIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
+  Alert,
   Dimensions,
   Image,
   Modal,
@@ -39,6 +41,7 @@ export default function ProfilePage() {
   const [selectedYear, setSelectedYear] = useState(1990);
   const [selectedMonth, setSelectedMonth] = useState(1);
   const [selectedDay, setSelectedDay] = useState(1);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   
   // 生成年份数组 (1950-2024)
   const years = Array.from({ length: 75 }, (_, i) => 1950 + i);
@@ -50,13 +53,73 @@ export default function ProfilePage() {
   };
   const days = Array.from({ length: getDaysInMonth(selectedYear, selectedMonth) }, (_, i) => i + 1);
 
-  useEffect(() => {
-    const fetchInfo = async () => {
-      const info = await infoManager.getInfo();
-      setInfo(info);
-    }
-    fetchInfo();
+  const fetchInfo = useCallback(async () => {
+    const info = await infoManager.getInfo();
+    console.log("page", info)
+    setInfo(info);
   }, []);
+
+  useEffect(() => {
+    fetchInfo();
+  }, [fetchInfo]);
+
+  // 当页面获得焦点时自动刷新info
+  useFocusEffect(
+    useCallback(() => {
+      fetchInfo();
+    }, [fetchInfo])
+  );
+
+  // 处理头像上传
+  const handleAvatarUpload = async () => {
+    try {
+      // 请求相册权限
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('权限不足', '需要访问相册权限来选择头像');
+        return;
+      }
+
+      // 选择图片
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1], // 正方形头像
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setIsUploadingAvatar(true);
+        
+        try {
+          // 创建File对象用于上传
+          const asset = result.assets[0];
+          const file = {
+            uri: asset.uri,
+            name: asset.fileName || `avatar_${Date.now()}.jpg`,
+            type: asset.mimeType || 'image/jpeg'
+          } as any;
+
+          // 使用infoManager上传头像
+          const avatarUrl = await infoManager.uploadAvatar(file);
+          
+          // 刷新用户信息
+          await fetchInfo();
+          
+          Alert.alert('成功', '头像上传成功');
+        } catch (error) {
+          console.error('头像上传失败:', error);
+          Alert.alert('错误', '头像上传失败，请重试');
+        } finally {
+          setIsUploadingAvatar(false);
+        }
+      }
+    } catch (error) {
+      console.error('选择图片失败:', error);
+      Alert.alert('错误', '选择图片失败，请重试');
+      setIsUploadingAvatar(false);
+    }
+  };
 
   return (
     <LinearGradient
@@ -74,10 +137,17 @@ export default function ProfilePage() {
         </View>
         
         <View style={styles.avatarSection}>
-          <View style={styles.avatarContainer}>
+          <Pressable style={styles.avatarContainer} onPress={handleAvatarUpload} disabled={isUploadingAvatar}>
             <Image source={{uri: info.avatar}} resizeMode="cover" style={styles.avatar} />
-          </View>
-          <MaterialIcons name="photo-camera" size={width * 0.06} color="#666" style={styles.cameraIcon} />
+            {isUploadingAvatar && (
+              <View style={styles.uploadingOverlay}>
+                <Text style={styles.uploadingText}>上传中...</Text>
+              </View>
+            )}
+          </Pressable>
+          <Pressable onPress={handleAvatarUpload} disabled={isUploadingAvatar}>
+            <MaterialIcons name="photo-camera" size={width * 0.06} color="#666" style={styles.cameraIcon} />
+          </Pressable>
         </View>
 
         <View style={styles.profileInfo}>
@@ -123,7 +193,7 @@ export default function ProfilePage() {
                 style={styles.confirmButton}
                 onPress={async () => {
                   // 保存选中的日期到 info 状态
-                  const selectedDate = `${selectedYear}年${selectedMonth}月${selectedDay}日`;
+                  const selectedDate = `${selectedYear}-${selectedMonth}-${selectedDay}`;
                   await infoManager.updateDate(selectedDate);
                   const info = await infoManager.getInfo();
                   setInfo(info);
@@ -293,11 +363,27 @@ const styles = StyleSheet.create({
   },
   cameraIcon: {
     position: "absolute",
-    right: width * 0.35,
-    bottom: height * 0.02,
+    left: width * 0.08,
+    bottom: height * 0.005,
     backgroundColor: "white",
     borderRadius: width * 0.03,
     padding: width * 0.01,
+  },
+  uploadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderRadius: height * 0.05,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  uploadingText: {
+    color: "white",
+    fontSize: width * 0.035,
+    fontWeight: "500",
   },
   profileInfo: {
     flex: 1,

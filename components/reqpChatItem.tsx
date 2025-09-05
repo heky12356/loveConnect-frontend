@@ -2,6 +2,7 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
 import { Audio } from 'expo-av';
+import { useState } from 'react';
 import { Alert, Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
@@ -15,31 +16,53 @@ type Prop = {
 }
 
 export default function ReqpChatItem({time, uri, text} : Prop) {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [sound, setSound] = useState<Audio.Sound>();
+
     const playAudio = async () => {
         if (!uri) return;
-        
+        setIsPlaying(true);
         try {
+            console.log("播放");
             const { sound } = await Audio.Sound.createAsync({ uri });
             await sound.playAsync();
-            
+            setSound(sound);
             sound.setOnPlaybackStatusUpdate((status) => {
                 if (status.isLoaded && status.didJustFinish) {
                     sound.unloadAsync();
+                    setIsPlaying(false);
                 }
             });
         } catch (error) {
             console.error('播放音频失败:', error);
             Alert.alert('错误', '播放音频失败');
+            setIsPlaying(false);
         }
     };
+
+    const pauseAudio = async () => {
+        if (!sound) return;
+        setIsPlaying(false);
+        try {
+            console.log("暂停");
+            await sound.pauseAsync();
+        } catch (error) {
+            console.error('暂停音频失败:', error);
+            Alert.alert('错误', '暂停音频失败');
+        }
+    }
 
     return (
         <View style={styles.container}>
             <View style={styles.viewBox}>
                 {uri ? (
-                     <Pressable onPress={playAudio} style={styles.audioContainer}>
-                         <SimpleLineIcons name="control-play" size={20} color="black" />
-                         <Text style={styles.audioText}>点击播放语音</Text>
+                     <Pressable onPress={isPlaying ? pauseAudio : playAudio} style={styles.audioContainer}>
+                         <SimpleLineIcons name={isPlaying ? "control-pause" : "control-play"} size={width * 0.08} color="black" />
+                         {isPlaying ? (
+                             <Text style={styles.audioText}>点击停止播放</Text>
+                         ) : (
+                             <Text style={styles.audioText}>点击播放语音</Text>
+                         )}
                      </Pressable>
                  ) : text ? (
                      <Text style={styles.text}>{text}</Text>
@@ -96,8 +119,9 @@ const styles = StyleSheet.create({
         gap: width * 0.02,
     },
     audioText: {
-         fontSize: width * 0.035,
+         fontSize: width * 0.05,
          color: 'black',
+         fontWeight: '400',
      },
      text: {
          fontSize: width * 0.035,

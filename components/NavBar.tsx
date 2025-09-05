@@ -1,8 +1,8 @@
 import { ChangeFlag, getInfoManager } from "@/api/infoManeger";
 import { useAuth } from "@/contexts/AuthContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 
 import {
   Alert,
@@ -29,13 +29,15 @@ export default function NavBar({ style }: Prop) {
   const [userName, setUserName] = useState("");
   const { logout } = useAuth();
 
-  useEffect(() => {
-    // console.log("NavBar useEffect");
-    infoManager.getInfo().then((info) => {
-      setProfileImg(info.avatar);
-      setUserName(info.name);
-    });
-  }, [ChangeFlag]);
+  useFocusEffect(
+    useCallback(() => {
+      // console.log("NavBar useEffect");
+      infoManager.getInfo().then((info) => {
+        setProfileImg(info.avatar);
+        setUserName(info.name);
+      });
+    }, [ChangeFlag])
+  );
 
   const handleLogout = () => {
     Alert.alert("确认登出", "您确定要登出吗？", [

@@ -1,5 +1,5 @@
-const mod = "development";
-// const mod = "production";
+// const mod = "development";
+const mod = "production";
 
 // AI项目接口
 interface AiItem {
@@ -53,7 +53,8 @@ interface ChatRecordsResponse {
   pages: number;
 }
 
-import { ApiResponse, handleApiResponse, handleApiError, authenticatedApiRequest } from './apiUtils';
+import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
+import { getAuthManager } from './authManager';
 
 let localAiList: AiItem[] = [
   {
@@ -74,7 +75,7 @@ interface AiManager {
   getAiList: () => Promise<AiItem[]>;
   
   // AI声音初始化
-  uploadVoiceInit: (audioFile: File, relation?: string, voiceId?: string) => Promise<VoiceInitResponse>;
+  uploadVoiceInit: (base64Audio: string, relation?: string, voiceId?: string) => Promise<VoiceInitResponse>;
   saveVoiceConfig: (config: VoiceSaveRequest) => Promise<VoiceSaveResponse>;
   
   // 聊天记录管理
@@ -83,44 +84,100 @@ interface AiManager {
 
 // 生产环境的AI管理类实现
 class AiManagerImpl implements AiManager {
-  private baseURL = 'http://localhost:8080'; // 根据实际后端地址配置
+  private baseURL = 'http://192.168.1.6:8080'; // 根据实际后端地址配置
   
   async getAiList(): Promise<AiItem[]> {
     try {
-      const response = await fetch(`${this.baseURL}/ai/getallai`);
-      const result: ApiResponse<any[]> = await response.json();
-      const data = handleApiResponse(result);
+      // 获取认证token
+      const authManager = getAuthManager();
+      const token = await authManager.getToken();
+      
+      console.log('Token状态:', token ? '已获取' : '未获取');
+
+      console.log('发送API请求到:', `${this.baseURL}/ai/getallai`);
+      const response = await fetch(`${this.baseURL}/ai/getallai`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      
+      console.log('API响应状态:', response.status, response.statusText);
+      
+      const result = await response.json();
+      
+      console.log("bug", result);
+      
+      // 处理后端返回的code可能是字符串的情况
+      if (typeof result.code === 'string') {
+        result.code = parseInt(result.code, 10);
+      }
+      
+      const data = handleApiResponse(result as ApiResponse<any[]>);
+      console.log('处理后的数据:', data);
+      console.log('数据类型:', typeof data, '是否为数组:', Array.isArray(data));
+      
+      if (!Array.isArray(data)) {
+        console.warn('API返回的数据不是数组格式:', data);
+        return [];
+      }
       
       // 转换后端数据格式为前端格式
-      const aiList: AiItem[] = data.map((item: any) => ({
-        id: item.id?.toString() || '',
-        name: item.name || '',
-        img: item.avatar || 'https://pan.heky.top/tmp/profile.png',
-        voice: item.voiceId || '',
-        createdAt: new Date().toISOString(),
-        profileId: item.id,
-        relation: item.relation || '',
-        voiceId: item.voiceId || '',
-      }));
+      // 根据接口文档，后端只返回 relation 和 voiceId 字段
+      const aiList: AiItem[] = data.map((item: any, index: number) => {
+        console.log(`转换第${index + 1}个AI项目:`, item);
+        return {
+          id: item.voiceId || `ai_${index + 1}`, // 使用voiceId作为id，或生成默认id
+          name: item.relation || '未命名AI', // 使用relation作为显示名称
+          img: 'https://pan.heky.top/tmp/profile.png', // 使用默认头像
+          voice: item.voiceId || '',
+          createdAt: new Date().toISOString(),
+          profileId: index + 1000, // 生成临时profileId
+          relation: item.relation || '',
+          voiceId: item.voiceId || '',
+        };
+      });
       
+      console.log('最终转换的AI列表:', aiList);
+      console.log('AI列表长度:', aiList.length);
       return aiList;
     } catch (error) {
-      handleApiError(error);
+      // 对于404错误（用户不存在关联的AI信息），这是正常情况，不输出error日志
+      if (error instanceof Error && (error as any).code === 404) {
+        console.log('用户暂无关联的AI信息，返回空列表');
+        return [];
+      }
+      // 不重新抛出错误，直接返回空数组让前端继续工作
+      return [];
     }
   }
   
 
   
-  async uploadVoiceInit(audioFile: File, relation?: string, voiceId?: string): Promise<VoiceInitResponse> {
+  async uploadVoiceInit(base64Audio: string, relation?: string, voiceId?: string): Promise<VoiceInitResponse> {
     try {
-      const formData = new FormData();
-      formData.append('file', audioFile);
-      if (relation) formData.append('relation', relation);
-      if (voiceId) formData.append('voiceId', voiceId);
+      // 获取认证token
+      const authManager = getAuthManager();
+      const token = await authManager.getToken();
       
+      if (!token) {
+        throw new Error('用户未登录');
+      }
+
+      const requestBody = {
+        base64Audio,
+        relation,
+        voiceId
+      };
+      
+      // 直接使用fetch而不是authenticatedApiRequest，避免重复JSON解析
       const response = await fetch(`${this.baseURL}/ai/voice/init`, {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestBody),
       });
       
       const result: ApiResponse<VoiceInitResponse> = await response.json();
@@ -132,10 +189,19 @@ class AiManagerImpl implements AiManager {
   
   async saveVoiceConfig(config: VoiceSaveRequest): Promise<VoiceSaveResponse> {
     try {
+      // 获取认证token
+      const authManager = getAuthManager();
+      const token = await authManager.getToken();
+      
+      if (!token) {
+        throw new Error('用户未登录');
+      }
+
       const response = await fetch(`${this.baseURL}/ai/savevoiceconfig`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(config),
       });
@@ -149,13 +215,25 @@ class AiManagerImpl implements AiManager {
   
   async getChatRecords(profileId: number, pageNum: number = 1, pageSize: number = 20): Promise<ChatRecordsResponse> {
     try {
+      // 获取认证token
+      const authManager = getAuthManager();
+      const token = await authManager.getToken();
+      
+      if (!token) {
+        throw new Error('用户未登录');
+      }
+
       const params = new URLSearchParams({
         profileId: profileId.toString(),
         pageNum: pageNum.toString(),
         pageSize: pageSize.toString(),
       });
       
-      const response = await fetch(`${this.baseURL}/ai/chat/records?${params}`);
+      const response = await fetch(`${this.baseURL}/ai/chat/records?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       const result: ApiResponse<ChatRecordsResponse> = await response.json();
       return handleApiResponse(result);
     } catch (error) {
@@ -202,11 +280,11 @@ class AiManagerMock implements AiManager {
     return [...localAiList];
   }
   
-  async uploadVoiceInit(audioFile: File, relation?: string, voiceId?: string): Promise<VoiceInitResponse> {
+  async uploadVoiceInit(base64Audio: string, relation?: string, voiceId?: string): Promise<VoiceInitResponse> {
     // 模拟音频上传和AI处理延迟
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    console.log('上传音频文件:', audioFile.name, '关系:', relation, '音色ID:', voiceId);
+    console.log('上传音频base64:', base64Audio.substring(0, 50) + '...', '关系:', relation, '音色ID:', voiceId);
     
     // 模拟返回数据
     return {

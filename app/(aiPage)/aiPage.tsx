@@ -1,3 +1,4 @@
+import { getAuthManager } from "@/api/authManager";
 import { msgManager } from "@/api/msgManager";
 import {
   AiChatRequest,
@@ -48,6 +49,7 @@ export default function AiPage() {
   const [profileImg, setProfileImg] = useState<string>();
   const [messages, setMessages] = useState<any[]>([]);
   const [aiRoleId, setAiRoleId] = useState<string>("");
+  const [userPhone, setUserPhone] = useState<string>(""); // 添加手机号状态
   const { isConnected } = useWebSocket();
   const wsManager = useRef(getWebSocketManager());
   const scrollViewRef = useRef<ScrollView>(null);
@@ -63,6 +65,16 @@ export default function AiPage() {
         // 初始化msgManager
         await msgManager.initialize();
         console.log("msgManager初始化完成");
+
+        // 获取当前用户手机号
+        const authManager = getAuthManager();
+        const currentUser = await authManager.getCurrentUser();
+        if (currentUser?.phone) {
+          setUserPhone(currentUser.phone);
+          console.log("获取到用户手机号:", currentUser.phone);
+        } else {
+          console.warn("未能获取到用户手机号");
+        }
 
         if (info.data) {
           const data = JSON.parse(decodeURIComponent(info.data));
@@ -181,9 +193,10 @@ export default function AiPage() {
       // 转换音频为Base64并发送
       const voiceBase64 = await audioToBase64(uri);
       const chatRequest: AiChatRequest = {
-        type: "voice",
+        type: "user_voice",
         voiceBase64,
-        aiRoleId,
+        aiRoleId: name,
+        phone: userPhone, // 使用从AuthManager获取的手机号
       };
 
       console.log("发送聊天请求:", chatRequest);
@@ -284,7 +297,7 @@ const style = StyleSheet.create({
     fontWeight: "500",
   },
   profile: {
-    height: height * 0.3,
+    height: height * 0.2,
     width: width,
     justifyContent: "center",
     alignItems: "center",
@@ -293,19 +306,19 @@ const style = StyleSheet.create({
   profileImgBox: {
     justifyContent: "center",
     alignItems: "center",
-    height: height * 0.3,
-    width: height * 0.3,
+    height: height * 0.18,
+    width: height * 0.18,
     borderRadius: height,
     backgroundColor: "white",
   },
   profileImg: {
-    height: height * 0.25,
-    width: height * 0.25,
+    height: height * 0.15,
+    width: height * 0.15,
     borderRadius: height,
   },
   content: {
-    paddingTop: height * 0.03,
-    height: height * 0.35,
+    paddingTop: height * 0.02,
+    height: height * 0.45,
     width: width,
     // backgroundColor: "green",
     alignItems: "center",
