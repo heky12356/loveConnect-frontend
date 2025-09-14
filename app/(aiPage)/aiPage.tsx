@@ -3,7 +3,6 @@ import { msgManager } from "@/api/msgManager";
 import {
   AiChatRequest,
   AiChatResponse,
-  getWebSocketManager,
 } from "@/api/websocketManager";
 import AiChatButtons from "@/components/aiChatButtons";
 import ReqChatItem from "@/components/reqChatItem";
@@ -50,8 +49,7 @@ export default function AiPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [aiRoleId, setAiRoleId] = useState<string>("");
   const [userPhone, setUserPhone] = useState<string>(""); // 添加手机号状态
-  const { isConnected } = useWebSocket();
-  const wsManager = useRef(getWebSocketManager());
+  const { isConnected, sendChatMessage, onChatResponse, offChatResponse } = useWebSocket();
   const scrollViewRef = useRef<ScrollView>(null);
   const nameRef = useRef<string>(""); // 用于保存最新的name值
 
@@ -100,11 +98,10 @@ export default function AiPage() {
     };
 
     const setupAiResponseListener = () => {
-      const ws = wsManager.current;
       // 先移除可能存在的旧监听器
-      ws.off("chat_response", aiResponseHandler);
+      offChatResponse(aiResponseHandler);
       // 接收AI回复
-      ws.on("chat_response", aiResponseHandler);
+      onChatResponse(aiResponseHandler);
     };
 
     initializeAndLoadMessages();
@@ -112,8 +109,7 @@ export default function AiPage() {
 
     // 清理函数
     return () => {
-      const ws = wsManager.current;
-      ws.off("chat_response", aiResponseHandler);
+      offChatResponse(aiResponseHandler);
     };
   }, []);
 
@@ -200,7 +196,7 @@ export default function AiPage() {
       };
 
       console.log("发送聊天请求:", chatRequest);
-      wsManager.current.sendChatMessage(chatRequest);
+      sendChatMessage(chatRequest);
     } catch (error) {
       console.error("发送消息失败:", error);
       Alert.alert("发送失败", "发送语音消息时出现错误");
