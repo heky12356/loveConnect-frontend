@@ -55,7 +55,7 @@ interface ChatRecordsResponse {
 
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
 import { getAuthManager } from './authManager';
-import { isDevelopment } from './config';
+import { isDevelopment, config } from './config';
 
 let localAiList: AiItem[] = [
   {
@@ -85,7 +85,7 @@ interface AiManager {
 
 // 生产环境的AI管理类实现
 class AiManagerImpl implements AiManager {
-  private baseURL = 'http://192.168.1.6:8080'; // 根据实际后端地址配置
+  private baseURL = config.api.baseUrl; // 使用配置文件中的后端地址
   
   async getAiList(): Promise<AiItem[]> {
     try {

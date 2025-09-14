@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
-import { isDevelopment } from './config';
+import { isDevelopment, config } from './config';
 
 // const mod = "development";
 
@@ -25,7 +25,7 @@ interface UploadManager {
 
 // 生产环境的上传管理类实现
 class UploadManagerImpl implements UploadManager {
-  private baseURL = 'http://192.168.1.6:8080'; // 根据实际后端地址配置  
+  private baseURL = config.api.baseUrl; // 使用配置文件中的后端地址  
   
   private async getAuthToken(): Promise<string | null> {
     try {

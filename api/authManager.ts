@@ -3,6 +3,7 @@ import { User } from '../contexts/AuthContext';
 import { UserIsolatedStorage } from '../utils/storageUtils';
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
 import { isDevelopment } from './config';
+import { config } from './config';
 
 // const mod = "development";
 
@@ -273,7 +274,7 @@ class AuthManagerMock implements AuthManager {
 class AuthManagerImpl implements AuthManager {
   private baseURL: string;
 
-  constructor(baseURL: string = 'http://192.168.1.6:8080') {
+  constructor(baseURL: string = config.api.baseUrl) {
     this.baseURL = baseURL;
   }
 

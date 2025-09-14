@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../contexts/AuthContext';
 import { UserIsolatedStorage } from '../utils/storageUtils';
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
-import { isDevelopment } from './config';
+import { isDevelopment, config } from './config';
 import { getUploadManager } from './uploadManager';
 
 // 为了向后兼容，保持原有的 Info 接口
@@ -55,7 +55,7 @@ let currentInfo: Info = { ...defaultInfo };
 // 增强的信息管理器，支持持久化存储和认证同步
 class InfoManagerText implements InfoManager {
   private initialized = false;
-  private baseURL = 'http://localhost:8080';
+  private baseURL = config.api.baseUrl;
   
   // 获取认证token
   private async getAuthToken(): Promise<string> {
@@ -249,7 +249,7 @@ class InfoManagerText implements InfoManager {
 }
 
 class InfoManagerImpl implements InfoManager {
-  private baseURL = 'http://192.168.1.6:8080';
+  private baseURL = config.api.baseUrl;
   private currentInfo: Info | null = null;
   private initialized = false;
 

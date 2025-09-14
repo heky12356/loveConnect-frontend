@@ -1,14 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { getUploadManager } from './uploadManager';
+import { config } from './config';
 
-const mod = "development";
-// const mod = "production";
-
-// API基础URL配置
-const API_BASE_URL = mod === "development" 
-  ? "http://localhost:3000/api" 
-  : "https://your-production-api.com/api";
+// API基础URL配置 - 使用统一的配置文件
+const API_BASE_URL = config.api.baseUrl;
 
 // 图片上传响应接口
 interface ImageUploadResponse {
