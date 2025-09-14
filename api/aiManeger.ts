@@ -55,6 +55,7 @@ interface ChatRecordsResponse {
 
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
 import { getAuthManager } from './authManager';
+import { isDevelopment } from './config';
 
 let localAiList: AiItem[] = [
   {
@@ -333,9 +334,7 @@ let aiManagerInstance: AiManager | null = null;
 // 导出AI管理器实例
 export const getAiManager = (): AiManager => {
   if (!aiManagerInstance) {
-    const isDevelopment = mod === 'development';
-    
-    if (isDevelopment) {
+    if (isDevelopment()) {
       aiManagerInstance = AiManagerMock.getInstance();
     } else {
       aiManagerInstance = new AiManagerImpl();

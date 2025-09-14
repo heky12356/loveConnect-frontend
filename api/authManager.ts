@@ -2,9 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../contexts/AuthContext';
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
 import { UserIsolatedStorage } from '../utils/storageUtils';
+import { isDevelopment } from './config';
 
 // const mod = "development";
-const mod = "production";
+
 
 // 认证管理器接口
 interface AuthManager {
@@ -556,9 +557,7 @@ class AuthManagerImpl implements AuthManager {
 // 导出认证管理器实例
 export const getAuthManager = (): AuthManager => {
   // 根据环境变量或配置决定使用哪个实现
-  const isDevelopment = mod === 'development';
-  
-  if (isDevelopment) {
+  if (isDevelopment()) {
     return new AuthManagerMock();
   } else {
     console.log('使用生产环境认证管理器');

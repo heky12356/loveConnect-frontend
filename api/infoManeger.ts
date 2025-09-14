@@ -3,6 +3,7 @@ import { User } from '../contexts/AuthContext';
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
 import { getUploadManager } from './uploadManager';
 import { UserIsolatedStorage, migrateStorageData } from '../utils/storageUtils';
+import { isDevelopment } from './config';
 
 // 为了向后兼容，保持原有的 Info 接口
 interface Info {
@@ -466,9 +467,6 @@ class InfoManagerImpl implements InfoManager {
   }
 }
 
-// 模式配置
-const mod = "production";
-
 // 单例实例
 let infoManagerInstance: InfoManager | null = null;
 
@@ -479,9 +477,7 @@ export const getInfoManager = (): InfoManager => {
   }
   
   // 根据环境变量或配置决定使用哪个实现
-  const isDevelopment = mod === 'development';
-  
-  if (isDevelopment) {
+  if (isDevelopment()) {
     infoManagerInstance = new InfoManagerText();
   } else {
     console.log('使用生产环境信息管理器');

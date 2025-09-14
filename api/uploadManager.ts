@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
+import { isDevelopment } from './config';
 
 // const mod = "development";
-const mod = "production";
+
 
 // 头像上传响应接口
 interface AvatarUploadResponse {
@@ -121,9 +122,7 @@ let uploadManagerInstance: UploadManager | null = null;
 // 导出上传管理器实例
 export const getUploadManager = (): UploadManager => {
   if (!uploadManagerInstance) {
-    const isDevelopment = mod === 'development';
-    
-    if (isDevelopment) {
+    if (isDevelopment()) {
       uploadManagerInstance = UploadManagerMock.getInstance();
     } else {
       uploadManagerInstance = new UploadManagerImpl();

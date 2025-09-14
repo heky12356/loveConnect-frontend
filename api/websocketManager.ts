@@ -7,6 +7,7 @@ import {
   WebSocketMessage,
   WebSocketState
 } from '@/types/websocket';
+import { config, isDevelopment } from './config';
 
 // AI聊天请求消息接口
 export interface AiChatRequest {
@@ -38,6 +39,8 @@ export interface WebSocketManager {
   sendChatMessage(message: AiChatRequest): Promise<boolean>;
   on(event: string, callback: Function): void;
   off(event: string, callback: Function): void;
+  onChatResponse(callback: (response: AiChatResponse) => void): void;
+  offChatResponse(callback: (response: AiChatResponse) => void): void;
   getConnectionState(): ConnectionState;
   getState(): WebSocketState;
   isConnected(): boolean;
@@ -52,8 +55,8 @@ class WebSocketManagerImpl implements WebSocketManager {
   private ws: WebSocket | null = null;
   private url: string;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectInterval = 3000;
+  private maxReconnectAttempts = config.websocket.reconnectAttempts;
+  private reconnectInterval = config.websocket.reconnectInterval;
   private listeners: Map<string, Function[]> = new Map();
   private stateChangeListeners: Function[] = [];
   private isConnecting = false;
@@ -71,6 +74,12 @@ class WebSocketManagerImpl implements WebSocketManager {
       reconnectAttempts: 0,
       lastConnectedAt: null
     };
+  }
+  onChatResponse(callback: (response: AiChatResponse) => void): void {
+    this.on('chat_response', callback);
+  }
+  offChatResponse(callback: (response: AiChatResponse) => void): void {
+    this.off('chat_response', callback);
   }
 
   static getInstance(url?: string, uid?: string): WebSocketManagerImpl {
@@ -496,6 +505,12 @@ class WebSocketManagerMock implements WebSocketManager {
       lastConnectedAt: null
     };
   }
+  onChatResponse(callback: (response: AiChatResponse) => void): void {
+    throw new Error('Method not implemented.');
+  }
+  offChatResponse(callback: (response: AiChatResponse) => void): void {
+    throw new Error('Method not implemented.');
+  }
 
   static getInstance(): WebSocketManagerMock {
     if (!WebSocketManagerMock.instance) {
@@ -659,15 +674,12 @@ class WebSocketManagerMock implements WebSocketManager {
   }
 }
 
-// 根据环境变量决定使用哪个实现
-// const mod = 'development';
-const mod = 'production';
-
+// 根据配置文件决定使用哪个实现
 export function getWebSocketManager(uid?: string): WebSocketManager {
-  if (mod === 'development') {
+  if (isDevelopment() || config.features.enableMockData) {
     return WebSocketManagerMock.getInstance();
   } else {
-    return WebSocketManagerImpl.getInstance(undefined, uid);
+    return WebSocketManagerImpl.getInstance(config.websocket.url, uid);
   }
 }
 

@@ -1,6 +1,8 @@
 import wsManager from '@/api/websocketManager';
 import { ConnectionState, NotificationData, WebSocketError, WebSocketState } from '@/types/websocket';
+import { AiChatRequest, AiChatResponse } from '@/api/websocketManager';
 import { notificationUtils } from '@/utils/notificationUtils';
+import { log } from '@/api/config';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
 interface NotificationStats {
@@ -24,6 +26,9 @@ interface WebSocketContextType {
   
   // 方法
   sendMessage: (message: any) => Promise<boolean>;
+  sendChatMessage: (message: AiChatRequest) => Promise<boolean>;
+  onChatResponse: (callback: (response: AiChatResponse) => void) => void;
+  offChatResponse: (callback: (response: AiChatResponse) => void) => void;
   clearNotifications: () => void;
   markNotificationAsRead: (id: string) => void;
   markAllNotificationsAsRead: () => void;
@@ -82,27 +87,27 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
     // 错误处理
     const handleError = (error: WebSocketError) => {
-      console.error('WebSocket 错误:', error);
+      log.error('WebSocket 错误:', error);
       
       // 根据错误类型显示不同的用户提示
       switch (error.type) {
         case 'network':
-          console.warn('网络连接问题，正在尝试重连...');
+          log.warn('网络连接问题，正在尝试重连...');
           break;
         case 'authentication':
-          console.error('认证失败，请重新登录');
+          log.error('认证失败，请重新登录');
           break;
         case 'server':
-          console.error('服务器错误，请稍后重试');
+          log.error('服务器错误，请稍后重试');
           break;
         default:
-          console.error('未知错误:', error.message);
+          log.error('未知错误:', error.message);
       }
     };
 
     // AI问候消息处理
     const handleAiGreeting = (greetingMessage: any) => {
-      console.log('收到AI问候消息:', greetingMessage);
+      log.debug('收到AI问候消息:', greetingMessage);
       // AI问候消息已经在WebSocket管理器中转换为通知，这里可以做额外处理
     };
 
@@ -114,7 +119,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
     // 初始化连接
     wsManager.connect().catch(error => {
-      console.error('初始化连接失败:', error);
+      log.error('初始化连接失败:', error);
     });
 
     // 清理函数
@@ -131,7 +136,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     try {
       return await wsManager.send(message);
     } catch (error) {
-      console.error('发送消息失败:', error);
+      log.error('发送消息失败:', error);
       return false;
     }
   }, []);
@@ -158,7 +163,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     try {
       await wsManager.connect();
     } catch (error) {
-      console.error('重试连接失败:', error);
+      log.error('重试连接失败:', error);
       throw error;
     }
   }, []);
@@ -187,6 +192,26 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     notificationUtils.clearDeduplicationCache();
   }, []);
 
+  // 发送AI聊天消息
+  const sendChatMessage = useCallback(async (message: AiChatRequest): Promise<boolean> => {
+    try {
+      return await wsManager.sendChatMessage(message);
+    } catch (error) {
+      log.error('发送AI聊天消息失败:', error);
+      return false;
+    }
+  }, []);
+
+  // 监听AI聊天响应
+  const onChatResponse = useCallback((callback: (response: AiChatResponse) => void) => {
+    wsManager.onChatResponse(callback);
+  }, []);
+
+  // 取消监听AI聊天响应
+  const offChatResponse = useCallback((callback: (response: AiChatResponse) => void) => {
+    wsManager.offChatResponse(callback);
+  }, []);
+
   return (
     <WebSocketContext.Provider value={{
       isConnected: wsState.isConnected,
@@ -197,6 +222,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       notifications,
       unreadCount,
       sendMessage,
+      sendChatMessage,
+      onChatResponse,
+      offChatResponse,
       clearNotifications,
       markNotificationAsRead,
       markAllNotificationsAsRead,

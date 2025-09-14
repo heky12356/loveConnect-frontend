@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { UserIsolatedStorage } from '../utils/storageUtils';
 import { apiRequest } from './apiUtils';
+import { log } from './config';
 
 const STORAGE_KEY = "Times";
 const BASE_STORAGE_KEY = "Times";
@@ -79,14 +80,14 @@ export class timeManager {
       
       // Web平台不支持通知，直接返回
       if (Platform.OS === 'web') {
-        console.log('Web平台跳过通知调度');
+        log.debug('Web平台跳过通知调度');
         return;
       }
       
       // 取消之前的通知
       if (item.notificationId) {
         await Notifications.cancelScheduledNotificationAsync(item.notificationId);
-        console.log(`已取消之前的通知: ${item.notificationId}`);
+        log.debug(`已取消之前的通知: ${item.notificationId}`);
       }
 
       const [hours, minutes] = item.time.split(':').map(Number);
@@ -94,12 +95,12 @@ export class timeManager {
       const scheduledTime = new Date();
       scheduledTime.setHours(hours, minutes, 0, 0);
 
-      console.log(`当前时间: ${now.toLocaleString()}, 计划时间: ${scheduledTime.toLocaleString()}`);
+      log.debug(`当前时间: ${now.toLocaleString()}, 计划时间: ${scheduledTime.toLocaleString()}`);
 
       // 如果时间已过，设置为明天
       if (scheduledTime <= now) {
         scheduledTime.setDate(scheduledTime.getDate() + 1);
-        console.log(`时间已过，调整为明天: ${scheduledTime.toLocaleString()}`);
+        log.debug(`时间已过，调整为明天: ${scheduledTime.toLocaleString()}`);
       }
 
       let trigger: any;
@@ -226,7 +227,7 @@ export class timeManager {
         };
       }
     } catch (error) {
-      console.error('更新定时问候时间失败:', error);
+      log.error('更新定时问候时间失败:', error);
       return {
         success: false,
         message: '网络错误，请稍后重试'
