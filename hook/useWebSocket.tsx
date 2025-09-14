@@ -1,8 +1,7 @@
-import wsManager from '@/api/websocketManager';
-import { ConnectionState, NotificationData, WebSocketError, WebSocketState } from '@/types/websocket';
-import { AiChatRequest, AiChatResponse } from '@/api/websocketManager';
-import { notificationUtils } from '@/utils/notificationUtils';
 import { log } from '@/api/config';
+import wsManager, { AiChatRequest, AiChatResponse } from '@/api/websocketManager';
+import { ConnectionState, NotificationData, WebSocketError, WebSocketState } from '@/types/websocket';
+import { notificationUtils } from '@/utils/notificationUtils';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
 interface NotificationStats {
@@ -69,16 +68,22 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       };
       
       setNotifications(prev => {
+        console.log('添加通知前，当前通知数量:', prev.length);
+        console.log('新通知ID:', notificationWithTimestamp.id);
+        
         // 检查是否已存在相同ID的通知
         const exists = prev.some(n => n.id === notificationWithTimestamp.id);
-        if (exists) return prev;
+        if (exists) {
+          console.log('通知ID已存在，跳过添加');
+          return prev;
+        }
         
-        // 添加新通知并应用去重和优化
+        // 添加新通知，暂时跳过processNotifications去重逻辑
         const newNotifications = [notificationWithTimestamp, ...prev];
-        const processedNotifications = notificationUtils.processNotifications(newNotifications);
+        console.log('添加通知后，通知数量:', newNotifications.length);
         
         // 保留最新50条
-        return processedNotifications.slice(0, 50);
+        return newNotifications.slice(0, 50);
       });
       
       // 可以在这里集成推送通知

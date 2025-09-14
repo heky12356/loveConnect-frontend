@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../contexts/AuthContext';
+import { UserIsolatedStorage } from '../utils/storageUtils';
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
-import { getUploadManager } from './uploadManager';
-import { UserIsolatedStorage, migrateStorageData } from '../utils/storageUtils';
 import { isDevelopment } from './config';
+import { getUploadManager } from './uploadManager';
 
 // 为了向后兼容，保持原有的 Info 接口
 interface Info {

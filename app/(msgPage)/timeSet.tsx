@@ -1,5 +1,5 @@
-import ReturnButton from "@/components/returnButton";
 import { timeManager } from "@/api/timeManager";
+import ReturnButton from "@/components/returnButton";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRef, useState } from "react";
 import {

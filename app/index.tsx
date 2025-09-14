@@ -2,6 +2,7 @@ import { getInfoManager } from "@/api/infoManeger";
 import BigButton from "@/components/BigButton";
 import NavBar from "@/components/NavBar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMessage } from "@/contexts/MessageContext";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import Foundation from "@expo/vector-icons/Foundation";
@@ -73,6 +74,7 @@ const handlePhonePress = async () => {
 
 export default function Index() {
   const { user, isAuthenticated, isInitialized } = useAuth();
+  const { totalUnreadCount } = useMessage();
   const [mood, setMood] = useState("");
 
   const handleMoodPress = (mood: string) => {
@@ -346,9 +348,11 @@ export default function Index() {
               }}
             ></View>
             <Text style={styles.notificationText}>消息通知</Text>
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationCount}>11</Text>
-            </View>
+            {totalUnreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationCount}>{totalUnreadCount}</Text>
+              </View>
+            )}
             <View
               style={{
                 height: height * 0.06,

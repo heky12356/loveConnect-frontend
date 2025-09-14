@@ -2,12 +2,15 @@ import AiListItem from "@/components/aiListItem";
 import ReturnButton from "@/components/returnButton";
 import { useImg } from "@/hook/useImg";
 import { useWebSocket } from "@/hook/useWebSocket";
+import { useMessage } from "@/contexts/MessageContext";
+import { notificationUtils } from "@/utils/notificationUtils";
+import { getAiManager, AiItem } from "@/api/aiManeger";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 const GlobalFontSize = width * 0.3;
@@ -15,50 +18,39 @@ const exampleImg = useImg().getImg("001");
 
 export default function MsgPage() {
   const { notifications, sendMessage } = useWebSocket();
-  const [aiItems, setAiItems] = useState<{ name: string; img: string; postNum: number; hasNewMessage: boolean }[]>([]);
+  const { aiItems, loading, clearAiItemMessages } = useMessage();
+  const exampleImg = useImg().getImg("001");
 
-  useEffect(() => {
-    console.log(notifications);
-    // 当收到WebSocket消息时，更新对应的AI项状态
-    if (notifications.length > 0) {
-      const latestNotification = notifications[notifications.length - 1];
-      // 优先使用顶级aiName属性，如果没有则尝试从data中获取
-      const aiName = latestNotification.aiName || (latestNotification.data && latestNotification.data.aiName);
-      if (aiName) {
-        setAiItems(prev => 
-          prev.map(item => 
-            item.name === aiName 
-              ? { ...item, hasNewMessage: true, postNum: (item.postNum || 0) + 1 }
-              : item
-          )
-        );
-      }
-    }
-  }, [notifications]);
+  // AI列表现在通过MessageContext管理，无需本地加载逻辑
+
+  // WebSocket通知现在通过MessageContext处理
 
   const handleAiItemClick = (aiName: string) => {
-    // 点击AI项时，清除新消息状态
-    setAiItems(prev => 
-      prev.map(item => 
-        item.name === aiName 
-          ? { ...item, hasNewMessage: false }
-          : item
-      )
-    );
+    // 点击AI项时，清除新消息状态和消息数量
+    clearAiItemMessages(aiName);
   };
 
   const testNotification = () => {
+    // 清空去重缓存，确保每次测试都能成功
+    notificationUtils.clearDeduplicationCache();
+    
+    const aiNames = ['女儿', '儿子', '妻子'];
+    const randomAi = aiNames[Math.floor(Math.random() * aiNames.length)];
+    const messageCount = Math.floor(Math.random() * 100) + 1;
+    
     const testMessage = {
       id: Date.now().toString(),
       title: '新消息',
-      message: '您有一条来自女儿的新消息',
+      message: `您有一条来自${randomAi}的新消息 #${messageCount}`,
       type: 'info' as const,
       timestamp: Date.now(),
-      aiName: '女儿', // 指定哪个AI发送了消息
+      aiName: randomAi, // 随机选择AI发送消息
       data: {
-        aiName: '女儿'
+        aiName: randomAi
       }
     };
+    console.log('发送测试消息:', testMessage);
+    console.log('去重缓存统计:', notificationUtils.getDeduplicationStats());
     sendMessage(testMessage);
   };
 
@@ -82,21 +74,31 @@ export default function MsgPage() {
           <Text style={styles.logoText}>消息通知</Text>
         </View>
         <View style={styles.content}>
-          {aiItems.map((item, index) => (
-            <AiListItem 
-              key={index}
-              name={item.name} 
-              img={item.img}
-              postNum={item.postNum}
-              hasNewMessage={item.hasNewMessage}
-              onPress={() => handleAiItemClick(item.name)}
-            />
-          ))}
-          
-          {/* 测试按钮 */}
-          <Pressable style={styles.testButton} onPress={testNotification}>
-            <Text style={styles.testButtonText}>测试新消息</Text>
-          </Pressable>
+          <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {loading ? (
+              <Text style={styles.loadingText}>加载中...</Text>
+            ) : (
+              aiItems.map((item) => (
+                <AiListItem 
+                  key={item.id}
+                  name={item.name} 
+                  img={item.img}
+                  postNum={item.postNum}
+                  hasNewMessage={item.hasNewMessage}
+                  onPress={() => handleAiItemClick(item.name)}
+                />
+              ))
+            )}
+            
+            {/* 测试按钮 */}
+            <Pressable style={styles.testButton} onPress={testNotification}>
+              <Text style={styles.testButtonText}>测试新消息</Text>
+            </Pressable>
+          </ScrollView>
           
           <Pressable
             style={styles.timeSetLink}
@@ -139,10 +141,23 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.03,
     height: height * 0.61,
     width: width,
-    // justifyContent: "center",
+    // backgroundColor: "blue",
+  },
+  scrollView: {
+    flex: 1,
+    width: width,
+  },
+  scrollContent: {
     alignItems: "center",
     gap: height * 0.03,
-    // backgroundColor: "blue",
+    paddingHorizontal: width * 0.05,
+    paddingBottom: height * 0.02,
+  },
+  loadingText: {
+    fontSize: width * 0.04,
+    color: "#666",
+    textAlign: "center",
+    marginTop: height * 0.1,
   },
   timeSetLink: {
     flexDirection: "row",

@@ -506,10 +506,10 @@ class WebSocketManagerMock implements WebSocketManager {
     };
   }
   onChatResponse(callback: (response: AiChatResponse) => void): void {
-    throw new Error('Method not implemented.');
+    this.on('chat_response', callback);
   }
   offChatResponse(callback: (response: AiChatResponse) => void): void {
-    throw new Error('Method not implemented.');
+    this.off('chat_response', callback);
   }
 
   static getInstance(): WebSocketManagerMock {
@@ -558,6 +558,33 @@ class WebSocketManagerMock implements WebSocketManager {
     }
     
     console.log('[Mock] 发送消息:', message);
+    
+    // 模拟将发送的消息转换为AI响应格式的通知事件
+    if (message && message.type === 'info' && message.aiName) {
+      setTimeout(() => {
+        const aiResponse = {
+          id: message.id, // 保持原始消息的ID
+          code: 200,
+          msg: '消息发送成功',
+          title: message.title || '新消息',
+          message: message.message || '测试消息',
+          type: message.type || 'info',
+          timestamp: message.timestamp || Date.now(),
+          aiName: message.aiName,
+          data: {
+            type: 'ai_response',
+            userText: message.message || '测试消息',
+            aiText: `收到来自${message.aiName}的消息: ${message.message}`,
+            aiRoleId: message.aiName || message.data?.aiName || 'mock-ai-1',
+            timestamp: message.timestamp || Date.now(),
+            aiName: message.aiName
+          }
+        };
+        console.log('[Mock] 触发AI响应格式的通知事件:', aiResponse);
+        this.emit('notification', aiResponse);
+      }, 500); // 模拟网络延迟
+    }
+    
     return true;
   }
 

@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserIsolatedStorage } from '../utils/storageUtils';
 
 const STORAGE_KEY = "ChatMap";

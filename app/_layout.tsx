@@ -1,5 +1,6 @@
 import { timeManager } from '@/api/timeManager';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { MessageProvider } from '@/contexts/MessageContext';
 import { WebSocketProvider } from '@/hook/useWebSocket';
 import * as Notifications from 'expo-notifications';
 import { Stack } from "expo-router";
@@ -77,13 +78,15 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <WebSocketProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen name="index" />
-        </Stack>
+        <MessageProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="index" />
+          </Stack>
+        </MessageProvider>
       </WebSocketProvider>
     </AuthProvider>
   );
