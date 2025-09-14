@@ -1,7 +1,7 @@
 import wsManager from '@/api/websocketManager';
-import { NotificationData, WebSocketState, WebSocketError, ConnectionState } from '@/types/websocket';
+import { ConnectionState, NotificationData, WebSocketError, WebSocketState } from '@/types/websocket';
 import { notificationUtils } from '@/utils/notificationUtils';
-import React, { createContext, ReactNode, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
 interface NotificationStats {
   total: number;
@@ -100,9 +100,16 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       }
     };
 
+    // AI问候消息处理
+    const handleAiGreeting = (greetingMessage: any) => {
+      console.log('收到AI问候消息:', greetingMessage);
+      // AI问候消息已经在WebSocket管理器中转换为通知，这里可以做额外处理
+    };
+
     // 注册事件监听器
     wsManager.onStateChange(handleStateChange);
     wsManager.on('notification', handleNotification);
+    wsManager.on('ai_greeting', handleAiGreeting);
     wsManager.on('error', handleError);
 
     // 初始化连接
@@ -114,6 +121,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     return () => {
       wsManager.offStateChange(handleStateChange);
       wsManager.off('notification', handleNotification);
+      wsManager.off('ai_greeting', handleAiGreeting);
       wsManager.off('error', handleError);
     };
   }, []);

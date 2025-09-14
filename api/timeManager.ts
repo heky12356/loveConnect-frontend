@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { UserIsolatedStorage } from '../utils/storageUtils';
+import { apiRequest } from './apiUtils';
 
 const STORAGE_KEY = "Times";
 const BASE_STORAGE_KEY = "Times";
@@ -199,6 +200,37 @@ export class timeManager {
     const enabledItems = await this.getEnabledTimeItems();
     for (const item of enabledItems) {
       await this.scheduleNotification(item);
+    }
+  }
+
+  // 修改定时问候时间
+  static async updateGreetingCron(greetingCron: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await apiRequest('/user/config/greeting-cron', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ greetingCron })
+      });
+
+      if ((response as any).code === 200) {
+        return {
+          success: true,
+          message: (response as any).msg || '定时问候时间已更新'
+        };
+      } else {
+        return {
+          success: false,
+          message: (response as any).msg || '更新失败'
+        };
+      }
+    } catch (error) {
+      console.error('更新定时问候时间失败:', error);
+      return {
+        success: false,
+        message: '网络错误，请稍后重试'
+      };
     }
   }
 }

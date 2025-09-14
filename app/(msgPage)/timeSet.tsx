@@ -1,7 +1,9 @@
 import ReturnButton from "@/components/returnButton";
+import { timeManager } from "@/api/timeManager";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRef, useState } from "react";
 import {
+  Alert,
   Dimensions,
   Pressable,
   ScrollView,
@@ -40,13 +42,38 @@ export default function TimeSet() {
     }
   };
 
-  const handleConfirm = () => {
-    console.log(
-      `设置时间: ${selectedHour.toString().padStart(2, "0")}:${selectedMinute
-        .toString()
-        .padStart(2, "0")}`
-    );
-    // 这里可以添加保存逻辑
+  const handleConfirm = async () => {
+    const timeString = `${selectedHour.toString().padStart(2, "0")}:${selectedMinute
+      .toString()
+      .padStart(2, "0")}`;
+    
+    console.log(`设置时间: ${timeString}`);
+    
+    try {
+      // 调用API更新定时问候时间
+      const result = await timeManager.updateGreetingCron(timeString);
+      
+      if (result.success) {
+        Alert.alert(
+          "设置成功",
+          `定时问候时间已设置为 ${timeString}`,
+          [{ text: "确定" }]
+        );
+      } else {
+        Alert.alert(
+          "设置失败",
+          result.message,
+          [{ text: "确定" }]
+        );
+      }
+    } catch (error) {
+      console.error('设置定时问候时间失败:', error);
+      Alert.alert(
+        "设置失败",
+        "网络错误，请稍后重试",
+        [{ text: "确定" }]
+      );
+    }
   };
 
   const handleReset = () => {

@@ -1,4 +1,5 @@
 import {
+  AiGreetingMessage,
   ConnectionState,
   NotificationData,
   QueuedMessage,
@@ -331,6 +332,11 @@ class WebSocketManagerImpl implements WebSocketManager {
       console.log('检测到AI聊天响应，转换格式:', message);
       this.emit('chat_response', message);
     }
+    // 检查是否是AI问候消息格式
+    else if (message.code !== undefined && message.msg !== undefined && message.data && message.data.type === 'ai_greeting') {
+      console.log('检测到AI问候消息:', message);
+      this.handleAiGreeting(message as AiGreetingMessage);
+    }
     // 其他格式的消息
     else {
       console.warn('收到未知格式的消息:', message);
@@ -340,6 +346,30 @@ class WebSocketManagerImpl implements WebSocketManager {
   // 处理通知
   private handleNotification(data: NotificationData) {
     this.emit('notification', data);
+  }
+
+  // 处理AI问候消息
+  private handleAiGreeting(message: AiGreetingMessage) {
+    // 将AI问候消息转换为通知格式
+    const notification: NotificationData = {
+      id: `greeting_${Date.now()}_${message.data.aiRoleId}`,
+      title: 'AI问候',
+      message: message.data.aiText,
+      type: 'info',
+      timestamp: Date.now(),
+      aiName: message.data.aiRoleId,
+      data: {
+        type: 'ai_greeting',
+        aiText: message.data.aiText,
+        aiVoiceUrl: message.data.aiVoiceUrl,
+        aiVoiceBase64: message.data.aiVoiceBase64,
+        aiRoleId: message.data.aiRoleId
+      }
+    };
+    
+    // 触发问候事件和通知事件
+    this.emit('ai_greeting', message);
+    this.emit('notification', notification);
   }
 
   // 事件监听器

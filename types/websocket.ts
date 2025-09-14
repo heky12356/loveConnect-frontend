@@ -14,6 +14,19 @@ export interface NotificationData {
   data?: any; // 额外的数据字段
 }
 
+// AI问候消息接口
+export interface AiGreetingMessage {
+  code: number;
+  msg: string;
+  data: {
+    type: 'ai_greeting';
+    aiText: string;
+    aiVoiceUrl: string;
+    aiVoiceBase64: string;
+    aiRoleId: string;
+  };
+}
+
 // WebSocket连接状态
 export enum ConnectionState {
   CONNECTING = 0,
