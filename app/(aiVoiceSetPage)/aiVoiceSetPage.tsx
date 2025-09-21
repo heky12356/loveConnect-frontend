@@ -89,10 +89,12 @@ const Step3 = ({
 
 const Step4 = ({
   voiceBase64,
-  name
+  name,
+  onComplete
 }: {
   voiceBase64: string;
   name: string;
+  onComplete: (voiceData: VoiceInitResponse) => void;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -102,63 +104,58 @@ const Step4 = ({
       
       setIsLoading(true);
       try {
-        const authManager = getAuthManager();
-        const token = await authManager.getToken();
+        // 使用AI管理器而不是直接调用API
+        const aiManager = getAiManager();
+        const result = await aiManager.uploadVoiceInit(voiceBase64, name);
         
-        const response = await fetch('http://192.168.1.6:8080/ai/voice/init', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            base64Audio: voiceBase64,
-            relation: name, // 可以根据需要修改
-          })
-        });
+        console.log('AI声音初始化成功:', result);
         
-        const result = await response.json();
-        console.log('AI声音初始化接口返回值:', result);
+        // 保存结果并跳转到下一步
+        onComplete(result);
         
-        if (result.code === 200) {
-          console.log('AI角色创建成功:', result.message);
-        } else {
-          console.error('AI角色创建失败:', result.message);
-        }
       } catch (error) {
-        console.error('请求AI声音初始化接口失败:', error);
+        console.error('AI声音初始化失败:', error);
       } finally {
         setIsLoading(false);
       }
     };
     
     initAiVoice();
-  }, [voiceBase64]);
+  }, [voiceBase64, name, onComplete]);
 
   return (
     <View style={styles.content}>
       <Text style={styles.guideText}> 
-        {isLoading ? '正在创建AI角色，请耐心等待...' : '正在创建AI角色，请耐心等待...'} 
+        {isLoading ? '正在创建AI角色，请耐心等待...' : 'AI角色创建完成！'} 
       </Text>
     </View>
   );
 };
 
-const Step5 = () => {
+const Step5 = ({ role, profileImg, voiceInitData }: { 
+  role: string; 
+  profileImg: string; 
+  voiceInitData: VoiceInitResponse | null; 
+}) => {
   return (
     <View style={styles.content}>
-      <Text style={styles.guideText}> 恭喜你！AI角色创建成功 </Text>
-      <Text style={styles.hintText}>
-        您的专属AI已经准备就绪，快去体验吧！
-      </Text>
       <Pressable
         style={styles.EndButton}
         onPress={() => {
-          router.push("/(aiPage)/firstAttentionPage");
+          const updatedData = {
+            role: role,
+            profileImg: profileImg,
+            voiceInitData: voiceInitData,
+          };
+          router.push(
+            `/(aiPage)/firstAttentionPage?data=${encodeURIComponent(
+              JSON.stringify(updatedData)
+            )}`
+          );
         }}
       >
         <Feather name="check-circle" size={width * 0.1} color="black" />
-        <Text style={styles.ButtonText}> 开始使用 </Text>
+        <Text style={styles.ButtonText}> 下一步 </Text>
       </Pressable>
     </View>
   );
@@ -302,7 +299,7 @@ export default function AiVoiceSetPage() {
   const handleVoiceInit = (voiceData: VoiceInitResponse) => {
     setVoiceInitData(voiceData);
     // 音色初始化成功后自动进入下一步
-    setStep(4);
+    setStep(5);
   };
 
   return (
@@ -343,8 +340,8 @@ export default function AiVoiceSetPage() {
           {step === 1 && <Step1 setStep={setStep} />}
           {step === 2 && <Step2 setStep={setStep} />}
           {step === 3 && <Step3 setVoice={setVoice} />}
-          {step === 4 && <Step4 voiceBase64={voiceBase64} name={role} />}
-          {step === 5 && <Step5 />}
+          {step === 4 && <Step4 voiceBase64={voiceBase64} name={role} onComplete={handleVoiceInit} />}
+          {step === 5 && <Step5 role={role} profileImg={profileImg} voiceInitData={voiceInitData} />}
           {step === 6 && <SkipView setStep={setStep} role={role} profileImg={profileImg} />}
         </View>
         <View style={styles.returnButton}>

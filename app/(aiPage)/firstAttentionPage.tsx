@@ -2,7 +2,8 @@ import NormalNavBar from "@/components/normalNavBar";
 import { useFirstAttention } from "@/hook/getFirstAttention";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
@@ -11,13 +12,24 @@ const iconSize = width * 0.18;
 const handleFirstAttention = ({
   isFirstAttention,
   setIsFirstAttention,
+  aiData,
 }: {
   isFirstAttention: boolean;
   setIsFirstAttention: (isFirstAttention: boolean) => void;
+  aiData: any;
 }) => {
-  //   console.log(isFirstAttention);
   setIsFirstAttention(false);
-  router.push("/(aiListPage)/aiListPage");
+  
+  // 如果有AI数据，跳转到聊天准备页面；否则跳转到AI列表页面
+  if (aiData) {
+    router.push(
+      `/(aiChatPreparePage)/aiChatPreparePage?data=${encodeURIComponent(
+        JSON.stringify(aiData)
+      )}`
+    );
+  } else {
+    router.push("/(aiListPage)/aiListPage");
+  }
 };
 
 const handleFeedback = ({
@@ -51,6 +63,19 @@ const RadiusButton = ({
 
 export default function FirstAttentionPage() {
   const [isFirstAttention, setIsFirstAttention] = useFirstAttention();
+  const [aiData, setAiData] = useState<any>(null);
+
+  const data = useLocalSearchParams<{
+    data: string;
+  }>();
+
+  useEffect(() => {
+    if (data.data) {
+      const decodedData = JSON.parse(decodeURIComponent(data.data));
+      setAiData(decodedData);
+    }
+  }, [data.data]);
+
   return (
     <LinearGradient
       colors={["#FFD0D0", "#EDFFB8", "#FFFFFF", "#FFCBCB"]}
@@ -74,7 +99,7 @@ export default function FirstAttentionPage() {
               color="#A7BAFF"
               text="像孩子 的声音"
               onPress={() => {
-                handleFirstAttention({ isFirstAttention, setIsFirstAttention });
+                handleFirstAttention({ isFirstAttention, setIsFirstAttention, aiData });
               }}
             />
             <RadiusButton

@@ -66,7 +66,7 @@ const configs: Record<Environment, AppConfig> = {
   production: productionConfig, 
 };
 
-// 当前环境设置 - 在这里修改环境模式
+// 当前环境设置 - 可以通过修改这个值来切换环境
 const CURRENT_ENVIRONMENT: Environment = 'development';
 
 // 获取当前配置

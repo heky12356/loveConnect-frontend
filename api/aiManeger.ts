@@ -1,5 +1,6 @@
-// const mod = "development";
-const mod = "production";
+import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
+import { getAuthManager } from './authManager';
+import { isDevelopment, config } from './config';
 
 // AI项目接口
 interface AiItem {
@@ -52,10 +53,6 @@ interface ChatRecordsResponse {
   pageSize: number;
   pages: number;
 }
-
-import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
-import { getAuthManager } from './authManager';
-import { isDevelopment, config } from './config';
 
 let localAiList: AiItem[] = [
   {
@@ -334,9 +331,12 @@ let aiManagerInstance: AiManager | null = null;
 // 导出AI管理器实例
 export const getAiManager = (): AiManager => {
   if (!aiManagerInstance) {
-    if (isDevelopment()) {
+    // 根据配置中的enableMockData决定使用模拟还是真实API
+    if (config.features.enableMockData) {
+      console.log('使用模拟AI管理器 (Mock Mode)');
       aiManagerInstance = AiManagerMock.getInstance();
     } else {
+      console.log('使用真实AI管理器 (Production Mode)');
       aiManagerInstance = new AiManagerImpl();
     }
   }

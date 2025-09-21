@@ -1,16 +1,14 @@
 import AiListItem from "@/components/aiListItem";
 import ReturnButton from "@/components/returnButton";
+import { useMessage } from "@/contexts/MessageContext";
 import { useImg } from "@/hook/useImg";
 import { useWebSocket } from "@/hook/useWebSocket";
-import { useMessage } from "@/contexts/MessageContext";
 import { notificationUtils } from "@/utils/notificationUtils";
-import { getAiManager, AiItem } from "@/api/aiManeger";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
-import { Dimensions, Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 const GlobalFontSize = width * 0.3;
@@ -34,7 +32,7 @@ export default function MsgPage() {
     // 清空去重缓存，确保每次测试都能成功
     notificationUtils.clearDeduplicationCache();
     
-    const aiNames = ['女儿', '儿子', '妻子'];
+    const aiNames = ['女儿'];
     const randomAi = aiNames[Math.floor(Math.random() * aiNames.length)];
     const messageCount = Math.floor(Math.random() * 100) + 1;
     
