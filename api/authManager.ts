@@ -14,19 +14,22 @@ interface AuthManager {
   login: (phone: string, password: string) => Promise<{ user: User; token: string }>;
   register: (userData: { phone: string; password: string; confirmPassword: string; name: string }) => Promise<{ user: User; token: string }>;
   logout: () => Promise<void>;
-  
+
   // 用户信息管理
   getCurrentUser: () => Promise<User | null>;
   updateUserProfile: (userData: Partial<User>) => Promise<User>;
-  
+
   // Token 管理
   getToken: () => Promise<string | null>;
   refreshToken: () => Promise<string>;
   validateToken: (token: string) => Promise<boolean>;
-  
+
   // 密码管理
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   resetPassword: (phone: string) => Promise<void>;
+
+  // 心情管理
+  saveMood: (uid: string, userMood: string) => Promise<{ uid: string; savedMood: string }>;
 }
 
 // 存储键名
@@ -240,6 +243,24 @@ class AuthManagerMock implements AuthManager {
     // 模拟发送重置密码短信
     await new Promise(resolve => setTimeout(resolve, 1500));
     console.log(`密码重置短信已发送到 ${phone}`);
+  }
+
+  async saveMood(uid: string, userMood: string): Promise<{ uid: string; savedMood: string }> {
+    // 模拟保存心情延迟
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // 验证心情值
+    const validMoods = ['开心', '伤心', '生气', '平淡'];
+    if (!validMoods.includes(userMood)) {
+      throw new Error('用户心情仅支持：开心/伤心/生气/平淡');
+    }
+
+    console.log(`保存用户心情 - uid: ${uid}, mood: ${userMood}`);
+
+    return {
+      uid,
+      savedMood: userMood
+    };
   }
 
   private generateToken(): string {
@@ -549,6 +570,29 @@ class AuthManagerImpl implements AuthManager {
 
       const result: ApiResponse<any> = await response.json();
       handleApiResponse(result);
+    } catch (error) {
+      handleApiError(error);
+    }
+  }
+
+  async saveMood(uid: string, userMood: string): Promise<{ uid: string; savedMood: string }> {
+    const token = await this.getToken();
+    if (!token) {
+      throw new Error('用户未登录');
+    }
+
+    try {
+      const response = await fetch(`${this.baseURL}/user/mood/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ uid, userMood }),
+      });
+
+      const result: ApiResponse<{ uid: string; savedMood: string }> = await response.json();
+      return handleApiResponse(result);
     } catch (error) {
       handleApiError(error);
     }

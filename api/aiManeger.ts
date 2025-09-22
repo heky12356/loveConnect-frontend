@@ -19,6 +19,31 @@ interface VoiceInitResponse {
   simulatedAudioUrl: string;
   voiceId: string;
   originalAudioPath: string;
+  aiAvatarUrl?: string;
+  aiVoiceBase64?: string;
+}
+
+// AI个性化接口
+interface AiPersonalizationRequest {
+  relation: string;
+  imageUrls: string[];
+}
+
+interface AiPersonalizationResponse {
+  code: string;
+  msg: string;
+}
+
+// AI声音确认接口
+interface VoiceConfirmRequest {
+  voiceId: string;
+  isSimilar: boolean;
+}
+
+interface VoiceConfirmResponse {
+  code: string;
+  msg: string;
+  data?: any;
 }
 
 // AI配置保存请求接口
@@ -71,13 +96,19 @@ let localAiList: AiItem[] = [
 interface AiManager {
   // AI项目管理
   getAiList: () => Promise<AiItem[]>;
-  
+
   // AI声音初始化
-  uploadVoiceInit: (base64Audio: string, relation?: string, voiceId?: string) => Promise<VoiceInitResponse>;
+  uploadVoiceInit: (base64Audio: string, relation?: string, voiceId?: string, aiAvatarUrl?: string) => Promise<VoiceInitResponse>;
   saveVoiceConfig: (config: VoiceSaveRequest) => Promise<VoiceSaveResponse>;
-  
+
+  // AI个性化
+  initPersonalization: (relation: string, imageUrls: string[]) => Promise<AiPersonalizationResponse>;
+
+  // AI声音确认
+  confirmVoice: (voiceId: string, isSimilar: boolean) => Promise<VoiceConfirmResponse>;
+
   // 聊天记录管理
-  getChatRecords: (profileId: number, pageNum?: number, pageSize?: number) => Promise<ChatRecordsResponse>;
+  getChatRecords: (aiRoleId: string, pageNum?: number, pageSize?: number) => Promise<ChatRecordsResponse>;
 }
 
 // 生产环境的AI管理类实现
@@ -152,12 +183,12 @@ class AiManagerImpl implements AiManager {
   
 
   
-  async uploadVoiceInit(base64Audio: string, relation?: string, voiceId?: string): Promise<VoiceInitResponse> {
+  async uploadVoiceInit(base64Audio: string, relation?: string, voiceId?: string, aiAvatarUrl?: string): Promise<VoiceInitResponse> {
     try {
       // 获取认证token
       const authManager = getAuthManager();
       const token = await authManager.getToken();
-      
+
       if (!token) {
         throw new Error('用户未登录');
       }
@@ -165,9 +196,10 @@ class AiManagerImpl implements AiManager {
       const requestBody = {
         base64Audio,
         relation,
-        voiceId
+        voiceId,
+        aiAvatarUrl
       };
-      
+
       // 直接使用fetch而不是authenticatedApiRequest，避免重复JSON解析
       const response = await fetch(`${this.baseURL}/ai/voice/init`, {
         method: 'POST',
@@ -177,7 +209,7 @@ class AiManagerImpl implements AiManager {
         },
         body: JSON.stringify(requestBody),
       });
-      
+
       const result: ApiResponse<VoiceInitResponse> = await response.json();
       return handleApiResponse(result);
     } catch (error) {
@@ -210,23 +242,79 @@ class AiManagerImpl implements AiManager {
       handleApiError(error);
     }
   }
-  
-  async getChatRecords(profileId: number, pageNum: number = 1, pageSize: number = 20): Promise<ChatRecordsResponse> {
+
+  async initPersonalization(relation: string, imageUrls: string[]): Promise<AiPersonalizationResponse> {
     try {
       // 获取认证token
       const authManager = getAuthManager();
       const token = await authManager.getToken();
-      
+
       if (!token) {
         throw new Error('用户未登录');
       }
 
       const params = new URLSearchParams({
-        profileId: profileId.toString(),
+        relation: relation
+      });
+
+      const response = await fetch(`${this.baseURL}/ai/personalization/init?${params}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ imageUrls }),
+      });
+
+      const result: ApiResponse<AiPersonalizationResponse> = await response.json();
+      return handleApiResponse(result);
+    } catch (error) {
+      handleApiError(error);
+    }
+  }
+
+  async confirmVoice(voiceId: string, isSimilar: boolean): Promise<VoiceConfirmResponse> {
+    try {
+      // 获取认证token
+      const authManager = getAuthManager();
+      const token = await authManager.getToken();
+
+      if (!token) {
+        throw new Error('用户未登录');
+      }
+
+      const response = await fetch(`${this.baseURL}/ai/voice/confirm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ voiceId, isSimilar }),
+      });
+
+      const result: ApiResponse<VoiceConfirmResponse> = await response.json();
+      return handleApiResponse(result);
+    } catch (error) {
+      handleApiError(error);
+    }
+  }
+
+  async getChatRecords(aiRoleId: string, pageNum: number = 1, pageSize: number = 20): Promise<ChatRecordsResponse> {
+    try {
+      // 获取认证token
+      const authManager = getAuthManager();
+      const token = await authManager.getToken();
+
+      if (!token) {
+        throw new Error('用户未登录');
+      }
+
+      const params = new URLSearchParams({
+        aiRoleId: aiRoleId,
         pageNum: pageNum.toString(),
         pageSize: pageSize.toString(),
       });
-      
+
       const response = await fetch(`${this.baseURL}/ai/chat/records?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -278,18 +366,57 @@ class AiManagerMock implements AiManager {
     return [...localAiList];
   }
   
-  async uploadVoiceInit(base64Audio: string, relation?: string, voiceId?: string): Promise<VoiceInitResponse> {
+  async uploadVoiceInit(base64Audio: string, relation?: string, voiceId?: string, aiAvatarUrl?: string): Promise<VoiceInitResponse> {
     // 模拟音频上传和AI处理延迟
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    console.log('上传音频base64:', base64Audio.substring(0, 50) + '...', '关系:', relation, '音色ID:', voiceId);
-    
+
+    console.log('上传音频base64:', base64Audio.substring(0, 50) + '...', '关系:', relation, '音色ID:', voiceId, 'AI头像URL:', aiAvatarUrl);
+
     // 模拟返回数据
     return {
       simulatedAudioUrl: `http://domain/path/to/simulated_${Date.now()}.wav`,
       voiceId: voiceId || `model_${Math.floor(Math.random() * 1000) + 1}`,
       originalAudioPath: `/path/to/original_${Date.now()}.wav`,
+      aiAvatarUrl: aiAvatarUrl || 'https://pan.heky.top/tmp/profile.png',
+      aiVoiceBase64: 'U29tZSBBSSB2b2ljZSBieSBQcm9k...',
     };
+  }
+
+  async initPersonalization(relation: string, imageUrls: string[]): Promise<AiPersonalizationResponse> {
+    // 模拟AI个性化处理延迟
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    console.log('AI个性化训练 - 关系:', relation, '图片数量:', imageUrls.length);
+
+    if (imageUrls.length < 5) {
+      throw new Error('至少需要提供 5 张微信聊天记录截图');
+    }
+
+    return {
+      code: "200",
+      msg: `AI角色【${relation}】个性化初始化成功`
+    };
+  }
+
+  async confirmVoice(voiceId: string, isSimilar: boolean): Promise<VoiceConfirmResponse> {
+    // 模拟声音确认处理延迟
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    console.log('声音确认 - 音色ID:', voiceId, '是否相似:', isSimilar);
+
+    if (isSimilar) {
+      return {
+        code: "200",
+        msg: "声音确认成功",
+        data: null
+      };
+    } else {
+      return {
+        code: "200",
+        msg: "记录已删除，可以重新录制",
+        data: null
+      };
+    }
   }
   
   async saveVoiceConfig(config: VoiceSaveRequest): Promise<VoiceSaveResponse> {
@@ -302,19 +429,19 @@ class AiManagerMock implements AiManager {
     return { profileId };
   }
   
-  async getChatRecords(profileId: number, pageNum: number = 1, pageSize: number = 20): Promise<ChatRecordsResponse> {
+  async getChatRecords(aiRoleId: string, pageNum: number = 1, pageSize: number = 20): Promise<ChatRecordsResponse> {
     // 模拟网络延迟
     await new Promise(resolve => setTimeout(resolve, 500));
-    
-    console.log(`获取聊天记录 - profileId: ${profileId}, pageNum: ${pageNum}, pageSize: ${pageSize}`);
-    
+
+    console.log(`获取聊天记录 - aiRoleId: ${aiRoleId}, pageNum: ${pageNum}, pageSize: ${pageSize}`);
+
     // 模拟分页数据
     const total = this.mockChatRecords.length;
     const startIndex = (pageNum - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     const list = this.mockChatRecords.slice(startIndex, endIndex);
     const pages = Math.ceil(total / pageSize);
-    
+
     return {
       total,
       list,
@@ -346,9 +473,15 @@ export const getAiManager = (): AiManager => {
 
 export type {
   AiItem,
-  AiManager, ChatRecord,
-  ChatRecordsResponse, VoiceInitResponse,
+  AiManager,
+  ChatRecord,
+  ChatRecordsResponse,
+  VoiceInitResponse,
   VoiceSaveRequest,
-  VoiceSaveResponse
+  VoiceSaveResponse,
+  AiPersonalizationRequest,
+  AiPersonalizationResponse,
+  VoiceConfirmRequest,
+  VoiceConfirmResponse
 };
 

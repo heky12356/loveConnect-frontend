@@ -178,6 +178,22 @@ export const useAuthManager = () => {
     setError(null);
   };
 
+  // 保存用户心情
+  const handleSaveMood = async (uid: string, userMood: string) => {
+    try {
+      setIsProcessing(true);
+      setError(null);
+      const result = await authManager.saveMood(uid, userMood);
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '保存心情失败';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return {
     // 状态
     user,
@@ -185,24 +201,27 @@ export const useAuthManager = () => {
     isLoading: isLoading || isProcessing,
     isInitialized,
     error,
-    
+
     // 认证操作
     login: handleLogin,
     register: handleRegister,
     logout: handleLogout,
-    
+
     // 用户资料操作
     updateProfile: handleUpdateProfile,
     changePassword: handleChangePassword,
     resetPassword: handleResetPassword,
-    
+
+    // 心情操作
+    saveMood: handleSaveMood,
+
     // Token 操作
     getToken,
     validateToken,
-    
+
     // 工具函数
     clearError,
-    
+
     // 管理器实例（用于高级用法）
     authManager,
     infoManager,
