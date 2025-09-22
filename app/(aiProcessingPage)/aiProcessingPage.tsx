@@ -1,7 +1,9 @@
+import { getAiManager } from "@/api/aiManeger";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Dimensions,
   Image,
@@ -18,6 +20,11 @@ export default function AiProcessingPage() {
   const [aiData, setAiData] = useState<any>(null);
   const [progress] = useState(new Animated.Value(0));
   const [dots, setDots] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // 使用 useRef 防止重复执行
+  const hasProcessed = useRef(false);
+  const timeoutRef = useRef<number | null>(null);
 
   const data = useLocalSearchParams<{
     data: string;
@@ -31,24 +38,120 @@ export default function AiProcessingPage() {
   }, [data.data]);
 
   useEffect(() => {
-    // 进度条动画
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: 5000, // 5秒完成
-      useNativeDriver: false,
-    }).start();
+    // 防止重复执行 - 如果已经处理过或正在处理中，直接返回
+    if (!aiData || hasProcessed.current || isProcessing) {
+      return;
+    }
 
-    // 5秒后跳转到成功页面
-    const timer = setTimeout(() => {
-      router.push(
-        `/(aiSuccessPage)/aiSuccessPage?data=${encodeURIComponent(
-          JSON.stringify(aiData)
-        )}`
-      );
-    }, 5000);
+    const processAiPersonalization = async () => {
+      // 检查是否有必要的数据
+      if (!aiData.relation || !aiData.chatImages) {
+        console.log('缺少必要数据，跳过AI个性化处理');
 
-    return () => clearTimeout(timer);
-  }, []);
+        // 设置5秒后跳转（无个性化处理）
+        timeoutRef.current = setTimeout(() => {
+          router.push(
+            `/(aiSuccessPage)/aiSuccessPage?data=${encodeURIComponent(
+              JSON.stringify(aiData)
+            )}`
+          );
+        }, 5000);
+        return;
+      }
+
+      // 标记开始处理
+      hasProcessed.current = true;
+      setIsProcessing(true);
+
+      try {
+        // 进度条动画 - 8秒给API调用时间
+        Animated.timing(progress, {
+          toValue: 1,
+          duration: 8000,
+          useNativeDriver: false,
+        }).start();
+
+        console.log('开始AI个性化处理:', {
+          relation: aiData.relation,
+          imageCount: aiData.chatImages?.length
+        });
+
+        // 调用AI个性化API
+        const aiManager = getAiManager();
+        const personalizationResult = await aiManager.initPersonalization(
+          aiData.relation,
+          aiData.chatImages
+        );
+
+        console.log('✅ AI个性化完成:', personalizationResult);
+
+        // 如果有问卷数据，记录但不发送
+        if (aiData.personalityAnswers) {
+          console.log('📝 问卷数据已收集，等待后端API:', aiData.personalityAnswers);
+        }
+
+        // 等待动画完成后跳转
+        timeoutRef.current = setTimeout(() => {
+          router.push(
+            `/(aiSuccessPage)/aiSuccessPage?data=${encodeURIComponent(
+              JSON.stringify({
+                ...aiData,
+                personalizationResult,
+                status: 'completed'
+              })
+            )}`
+          );
+        }, 8000);
+
+      } catch (error) {
+        console.error('AI个性化失败:', error);
+
+        // 错误处理，但不阻断流程
+        Alert.alert(
+          "提示",
+          "AI个性化处理失败，但数据已保存。是否继续？",
+          [
+            {
+              text: "重试",
+              onPress: () => {
+                // 重置状态，允许重试
+                hasProcessed.current = false;
+                setIsProcessing(false);
+                router.back();
+              }
+            },
+            {
+              text: "继续",
+              onPress: () => {
+                timeoutRef.current = setTimeout(() => {
+                  router.push(
+                    `/(aiSuccessPage)/aiSuccessPage?data=${encodeURIComponent(
+                      JSON.stringify({
+                        ...aiData,
+                        status: 'partial_complete'
+                      })
+                    )}`
+                  );
+                }, 2000);
+              }
+            }
+          ]
+        );
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
+    processAiPersonalization();
+
+    // 清理函数 - 组件卸载时清理定时器
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [aiData]); // 只依赖 aiData 的变化
 
   useEffect(() => {
     // 动态显示点点点效果

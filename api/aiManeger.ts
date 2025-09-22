@@ -1,6 +1,6 @@
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
 import { getAuthManager } from './authManager';
-import { isDevelopment, config } from './config';
+import { config } from './config';
 
 // AI项目接口
 interface AiItem {
@@ -283,7 +283,7 @@ class AiManagerImpl implements AiManager {
         throw new Error('用户未登录');
       }
 
-      const response = await fetch(`${this.baseURL}/ai/voice/confirm`, {
+      const response = await fetch(`${this.baseURL}/ai/voice/init`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -473,15 +473,11 @@ export const getAiManager = (): AiManager => {
 
 export type {
   AiItem,
-  AiManager,
-  ChatRecord,
-  ChatRecordsResponse,
-  VoiceInitResponse,
+  AiManager, AiPersonalizationRequest,
+  AiPersonalizationResponse, ChatRecord,
+  ChatRecordsResponse, VoiceConfirmRequest,
+  VoiceConfirmResponse, VoiceInitResponse,
   VoiceSaveRequest,
-  VoiceSaveResponse,
-  AiPersonalizationRequest,
-  AiPersonalizationResponse,
-  VoiceConfirmRequest,
-  VoiceConfirmResponse
+  VoiceSaveResponse
 };
 

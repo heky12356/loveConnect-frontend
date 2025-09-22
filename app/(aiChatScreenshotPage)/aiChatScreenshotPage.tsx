@@ -24,6 +24,7 @@ const guideLogo = require("@/assets/images/aiscreenn.png");
 export default function AiChatScreenshotPage() {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [aiData, setAiData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const data = useLocalSearchParams<{
     data: string;
@@ -77,22 +78,45 @@ export default function AiChatScreenshotPage() {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (selectedImages.length === 0) {
       Alert.alert("提示", "请至少上传一张聊天截图");
       return;
     }
 
-    const updatedData = {
-      ...aiData,
-      chatScreenshots: selectedImages,
-    };
+    setIsLoading(true);
+    try {
+      // 将本地图片上传到图床，获取URL
+      const imageUrls: string[] = [];
 
-    router.push(
-      `/(aiPersonalityPage)/aiPersonalityPage?data=${encodeURIComponent(
-        JSON.stringify(updatedData)
-      )}`
-    );
+      for (const imageUri of selectedImages) {
+        console.log('正在上传图片:', imageUri);
+        const uploadedUrl = await uploadImage({ uri: imageUri });
+        if (uploadedUrl?.url) {
+          imageUrls.push(uploadedUrl.url);
+        }
+        console.log('图片上传成功:', uploadedUrl);
+      }
+
+      const updatedData = {
+        ...aiData,
+        chatScreenshots: selectedImages, // 保留本地路径（用于UI显示）
+        chatImages: imageUrls, // 新增：图床URL（用于API调用）
+      };
+
+      console.log('所有图片上传完成，图片URL:', imageUrls);
+
+      router.push(
+        `/(aiPersonalityPage)/aiPersonalityPage?data=${encodeURIComponent(
+          JSON.stringify(updatedData)
+        )}`
+      );
+    } catch (error) {
+      console.error('图片上传失败:', error);
+      Alert.alert("错误", "图片上传失败，请重试");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSkip = () => {
@@ -162,7 +186,10 @@ export default function AiChatScreenshotPage() {
         <View style={styles.buttonContainer}>
           <ReturnButton />
           <View style={styles.rightButtons}>
-            <NextStepButton onPress={handleNext} />
+            <NextStepButton onPress={isLoading ? undefined : handleNext} />
+            {isLoading && (
+              <Text style={styles.loadingText}>上传中...</Text>
+            )}
           </View>
         </View>
       </View>
@@ -279,6 +306,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: width * 0.03,
+  },
+  loadingText: {
+    fontSize: width * 0.035,
+    color: "#666",
+    marginLeft: width * 0.02,
   },
   skipButton: {
     paddingHorizontal: width * 0.04,

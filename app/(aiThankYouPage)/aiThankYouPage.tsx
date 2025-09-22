@@ -29,22 +29,6 @@ export default function AiThankYouPage() {
     }
   }, [data.data]);
 
-  const handleComplete = () => {
-    // 3秒后自动跳转到加载页面
-    setTimeout(() => {
-      router.push(
-        `/(aiProcessingPage)/aiProcessingPage?data=${encodeURIComponent(
-          JSON.stringify(aiData)
-        )}`
-      );
-    }, 3000);
-  };
-
-  useEffect(() => {
-    // 页面加载后自动开始倒计时
-    handleComplete();
-  }, []);
-
   return (
     <LinearGradient
       colors={["#FFD0D0", "#EDFFB8", "#FFFFFF", "#FFCBCB"]}

@@ -90,10 +90,12 @@ const Step3 = ({
 const Step4 = ({
   voiceBase64,
   name,
+  profileImg,
   onComplete
 }: {
   voiceBase64: string;
   name: string;
+  profileImg: string;
   onComplete: (voiceData: VoiceInitResponse) => void;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -101,27 +103,32 @@ const Step4 = ({
   useEffect(() => {
     const initAiVoice = async () => {
       if (!voiceBase64) return;
-      
+
       setIsLoading(true);
       try {
-        // 使用AI管理器而不是直接调用API
+        // 使用AI管理器，传递完整的参数包括aiAvatarUrl
         const aiManager = getAiManager();
-        const result = await aiManager.uploadVoiceInit(voiceBase64, name);
-        
+        const result = await aiManager.uploadVoiceInit(
+          voiceBase64,  // base64Audio
+          name,         // relation
+          undefined,    // voiceId (可选)
+          profileImg    // aiAvatarUrl
+        );
+
         console.log('AI声音初始化成功:', result);
-        
+
         // 保存结果并跳转到下一步
         onComplete(result);
-        
+
       } catch (error) {
         console.error('AI声音初始化失败:', error);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     initAiVoice();
-  }, [voiceBase64, name, onComplete]);
+  }, [voiceBase64, name, profileImg, onComplete]);
 
   return (
     <View style={styles.content}>
@@ -143,7 +150,7 @@ const Step5 = ({ role, profileImg, voiceInitData }: {
         style={styles.EndButton}
         onPress={() => {
           const updatedData = {
-            role: role,
+            relation: role,
             profileImg: profileImg,
             voiceInitData: voiceInitData,
           };
@@ -340,7 +347,7 @@ export default function AiVoiceSetPage() {
           {step === 1 && <Step1 setStep={setStep} />}
           {step === 2 && <Step2 setStep={setStep} />}
           {step === 3 && <Step3 setVoice={setVoice} />}
-          {step === 4 && <Step4 voiceBase64={voiceBase64} name={role} onComplete={handleVoiceInit} />}
+          {step === 4 && <Step4 voiceBase64={voiceBase64} name={role} profileImg={profileImg} onComplete={handleVoiceInit} />}
           {step === 5 && <Step5 role={role} profileImg={profileImg} voiceInitData={voiceInitData} />}
           {step === 6 && <SkipView setStep={setStep} role={role} profileImg={profileImg} />}
         </View>

@@ -3,6 +3,7 @@ import BigButton from "@/components/BigButton";
 import NavBar from "@/components/NavBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessage } from "@/contexts/MessageContext";
+import { useAuthManager } from "@/hook/useAuthManager";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import Foundation from "@expo/vector-icons/Foundation";
@@ -75,12 +76,30 @@ const handlePhonePress = async () => {
 export default function Index() {
   const { user, isAuthenticated, isInitialized } = useAuth();
   const { totalUnreadCount } = useMessage();
+  const { saveMood } = useAuthManager();
   const [mood, setMood] = useState("");
 
-  const handleMoodPress = (mood: string) => {
-    setMood(mood);
-    console.log("Selected mood:", mood);
-    // 这里可以添加心情记录逻辑
+  const handleMoodPress = async (selectedMood: string) => {
+    setMood(selectedMood);
+    console.log("Selected mood:", selectedMood);
+
+    // 调用心情保存API
+    if (user?.id) {
+      try {
+        const moodMapping = {
+          "happy": "开心",
+          "neutral": "平淡",
+          "sad": "伤心",
+          "angry": "生气"
+        };
+
+        const result = await saveMood(user.id, moodMapping[selectedMood as keyof typeof moodMapping]);
+        console.log('心情保存成功:', result);
+      } catch (error) {
+        console.error('保存心情失败:', error);
+        // 不显示错误给用户，保持体验流畅
+      }
+    }
   };
 
   // 检查认证状态，如果未登录则跳转到登录页面

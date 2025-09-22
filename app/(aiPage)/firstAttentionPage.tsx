@@ -1,15 +1,17 @@
+import { getAiManager } from "@/api/aiManeger";
 import NormalNavBar from "@/components/normalNavBar";
 import { useFirstAttention } from "@/hook/getFirstAttention";
 import AntDesign from "@expo/vector-icons/AntDesign";
+import { Audio } from "expo-av";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 
 const { height, width } = Dimensions.get("window");
 const iconSize = width * 0.18;
 
-const handleFirstAttention = ({
+const handleFirstAttention = async ({
   isFirstAttention,
   setIsFirstAttention,
   aiData,
@@ -18,29 +20,77 @@ const handleFirstAttention = ({
   setIsFirstAttention: (isFirstAttention: boolean) => void;
   aiData: any;
 }) => {
-  setIsFirstAttention(false);
-  
-  // 如果有AI数据，跳转到聊天准备页面；否则跳转到AI列表页面
-  if (aiData) {
-    router.push(
-      `/(aiChatPreparePage)/aiChatPreparePage?data=${encodeURIComponent(
-        JSON.stringify(aiData)
-      )}`
-    );
-  } else {
-    router.push("/(aiListPage)/aiListPage");
+  try {
+    // 如果有voiceId，调用确认API
+    if (aiData?.voiceInitData?.voiceId) {
+      const aiManager = getAiManager();
+      await aiManager.confirmVoice(aiData.voiceInitData.voiceId, true);
+      console.log('✅ 声音确认成功');
+    }
+
+    setIsFirstAttention(false);
+
+    // 如果有AI数据，跳转到聊天准备页面；否则跳转到AI列表页面
+    if (aiData) {
+      router.push(
+        `/(aiChatPreparePage)/aiChatPreparePage?data=${encodeURIComponent(
+          JSON.stringify(aiData)
+        )}`
+      );
+    } else {
+      router.push("/(aiListPage)/aiListPage");
+    }
+  } catch (error) {
+    console.error('声音确认失败:', error);
+    Alert.alert("错误", "声音确认失败，但将继续流程");
+
+    setIsFirstAttention(false);
+    if (aiData) {
+      router.push(
+        `/(aiChatPreparePage)/aiChatPreparePage?data=${encodeURIComponent(
+          JSON.stringify(aiData)
+        )}`
+      );
+    } else {
+      router.push("/(aiListPage)/aiListPage");
+    }
   }
 };
 
-const handleFeedback = ({
+const handleFeedback = async ({
   isFirstAttention,
   setIsFirstAttention,
+  aiData,
 }: {
   isFirstAttention: boolean;
   setIsFirstAttention: (isFirstAttention: boolean) => void;
+  aiData: any;
 }) => {
-  setIsFirstAttention(false);
-  router.push("/feedbackPage");
+  try {
+    // 如果有voiceId，调用确认API表示不像
+    if (aiData?.voiceInitData?.voiceId) {
+      const aiManager = getAiManager();
+      await aiManager.confirmVoice(aiData.voiceInitData.voiceId, false);
+      console.log('✅ 声音确认为不像，已通知后端删除');
+    }
+
+    setIsFirstAttention(false);
+    Alert.alert(
+      "重新录制",
+      "将返回重新录制声音",
+      [
+        {
+          text: "确定",
+          onPress: () => router.push("/(aiVoiceSetPage)/aiVoiceSetPage")
+        }
+      ]
+    );
+  } catch (error) {
+    console.error('声音确认失败:', error);
+    Alert.alert("错误", "确认失败，请手动返回重新录制");
+    setIsFirstAttention(false);
+    router.push("/(aiVoiceSetPage)/aiVoiceSetPage");
+  }
 };
 
 const RadiusButton = ({
@@ -64,6 +114,8 @@ const RadiusButton = ({
 export default function FirstAttentionPage() {
   const [isFirstAttention, setIsFirstAttention] = useFirstAttention();
   const [aiData, setAiData] = useState<any>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
 
   const data = useLocalSearchParams<{
     data: string;
@@ -73,8 +125,56 @@ export default function FirstAttentionPage() {
     if (data.data) {
       const decodedData = JSON.parse(decodeURIComponent(data.data));
       setAiData(decodedData);
+      console.log('AI数据:', decodedData);
     }
   }, [data.data]);
+
+  // 播放AI生成的测试语音
+  const playTestVoice = async () => {
+    try {
+      if (!aiData?.voiceInitData?.aiVoiceBase64) {
+        Alert.alert("提示", "没有找到测试语音，请返回重新录制");
+        return;
+      }
+
+      setIsPlaying(true);
+
+      // 如果已有sound实例，先停止
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+      }
+
+      // 创建新的sound实例播放Base64音频
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: aiData.voiceInitData.aiVoiceBase64 },
+        { shouldPlay: true }
+      );
+
+      setSound(newSound);
+
+      // 监听播放状态
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setIsPlaying(false);
+        }
+      });
+
+    } catch (error) {
+      console.error('播放语音失败:', error);
+      setIsPlaying(false);
+      Alert.alert("错误", "播放失败，请检查语音文件");
+    }
+  };
+
+  // 清理sound资源
+  useEffect(() => {
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [sound]);
 
   return (
     <LinearGradient
@@ -106,7 +206,7 @@ export default function FirstAttentionPage() {
               color="#FEB4BE"
               text="不太像，再改改"
               onPress={() => {
-                handleFeedback({ isFirstAttention, setIsFirstAttention });
+                handleFeedback({ isFirstAttention, setIsFirstAttention, aiData });
               }}
             />
           </View>
@@ -118,10 +218,20 @@ export default function FirstAttentionPage() {
           </View>
         </View>
         <View style={styles.playButtonContainer}>
-          <View style={styles.playButton}>
-            <AntDesign name="sound" size={iconSize} color="black" />
-          </View>
-          <Text style={styles.playButtonText}>播放</Text>
+          <Pressable
+            style={styles.playButton}
+            onPress={playTestVoice}
+            disabled={isPlaying}
+          >
+            <AntDesign
+              name={isPlaying ? "loading1" : "sound"}
+              size={iconSize}
+              color="black"
+            />
+          </Pressable>
+          <Text style={styles.playButtonText}>
+            {isPlaying ? "播放中..." : "播放"}
+          </Text>
         </View>
       </View>
     </LinearGradient>
