@@ -93,9 +93,9 @@ export default function MsgPage() {
             )}
             
             {/* 测试按钮 */}
-            <Pressable style={styles.testButton} onPress={testNotification}>
+            {/* <Pressable style={styles.testButton} onPress={testNotification}>
               <Text style={styles.testButtonText}>测试新消息</Text>
-            </Pressable>
+            </Pressable> */}
           </ScrollView>
           
           <Pressable

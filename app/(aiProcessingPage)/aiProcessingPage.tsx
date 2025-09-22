@@ -2,17 +2,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  Animated,
   Dimensions,
   Image,
   StyleSheet,
   Text,
   View,
-  Animated,
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
 
-const guideLogo = require("@/assets/images/aiscreenn.png");
+const guideLogo = require("@/assets/images/feedbackLogo.png");
 
 export default function AiProcessingPage() {
   const [aiData, setAiData] = useState<any>(null);
@@ -71,27 +71,12 @@ export default function AiProcessingPage() {
       style={{ flex: 1 }}
     >
       <View style={styles.container}>
-        {/* 头像区域 */}
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Image
-              source={guideLogo}
-              style={styles.avatarImage}
-            />
-          </View>
-        </View>
-
         {/* 标题文字 */}
         <View style={styles.titleContainer}>
           <Text style={styles.titleText}>个性化定制中{dots}</Text>
         </View>
 
-        {/* 提示文字 */}
-        <View style={styles.subtitleContainer}>
-          <Text style={styles.subtitleText}>请耐心等待~</Text>
-        </View>
-
-        {/* 进度条区域 */}
+                {/* 进度条区域 */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBarBackground}>
             <Animated.View
@@ -107,14 +92,20 @@ export default function AiProcessingPage() {
             />
           </View>
         </View>
-
-        {/* 加载动画区域 */}
-        <View style={styles.loadingContainer}>
-          <View style={styles.loadingDots}>
-            <View style={[styles.dot, styles.dot1]} />
-            <View style={[styles.dot, styles.dot2]} />
-            <View style={[styles.dot, styles.dot3]} />
+        
+        {/* 头像区域 */}
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <Image
+              source={guideLogo}
+              style={styles.avatarImage}
+            />
           </View>
+        </View>
+
+        {/* 提示文字 */}
+        <View style={styles.subtitleContainer}>
+          <Text style={styles.subtitleText}>请耐心等待~</Text>
         </View>
       </View>
     </LinearGradient>
@@ -172,30 +163,10 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#90EE90",
+    backgroundColor: "#FFB1B1",
     borderRadius: height * 0.0075,
   },
   loadingContainer: {
     alignItems: "center",
-  },
-  loadingDots: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: width * 0.02,
-  },
-  dot: {
-    width: width * 0.03,
-    height: width * 0.03,
-    borderRadius: width * 0.015,
-    backgroundColor: "#87CEEB",
-  },
-  dot1: {
-    animationDelay: "0s",
-  },
-  dot2: {
-    animationDelay: "0.2s",
-  },
-  dot3: {
-    animationDelay: "0.4s",
   },
 });

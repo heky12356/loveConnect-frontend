@@ -1,3 +1,4 @@
+import ReturnButton from "@/components/returnButton";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -12,7 +13,7 @@ import {
 
 const { width, height } = Dimensions.get("window");
 
-const guideLogo = require("@/assets/images/aiscreenn.png");
+const guideLogo = require("@/assets/images/feedbackLogo.png");
 
 export default function AiThankYouPage() {
   const [aiData, setAiData] = useState<any>(null);
@@ -82,21 +83,13 @@ export default function AiThankYouPage() {
               );
             }}
           >
-            <View style={styles.checkIcon}>
-              <Text style={styles.checkText}>✓</Text>
-            </View>
             <Text style={styles.completeButtonText}>完成</Text>
           </Pressable>
         </View>
 
         {/* 返回按钮区域 */}
         <View style={styles.returnButtonContainer}>
-          <Pressable 
-            style={styles.returnButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.returnButtonText}>‹</Text>
-          </Pressable>
+          <ReturnButton />
         </View>
       </View>
     </LinearGradient>
@@ -131,14 +124,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.08,
     paddingVertical: height * 0.04,
     marginBottom: height * 0.08,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   thankYouText: {
     fontSize: width * 0.055,
@@ -153,10 +138,10 @@ const styles = StyleSheet.create({
   completeButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#B8A9FF",
-    paddingHorizontal: width * 0.08,
-    paddingVertical: height * 0.02,
-    borderRadius: width * 0.08,
+    backgroundColor: "#FFD8D8",
+    width: width * 0.3,
+    paddingVertical: height * 0.01,
+    borderRadius: width * 0.04,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -165,6 +150,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3.84,
     elevation: 5,
+
+    display: "flex",
+    justifyContent: "center",
   },
   checkIcon: {
     width: width * 0.06,
@@ -181,8 +169,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   completeButtonText: {
-    fontSize: width * 0.05,
-    color: "white",
+    fontSize: width * 0.07,
+    color: "#333",
     fontWeight: "600",
   },
   returnButtonContainer: {

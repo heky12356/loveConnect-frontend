@@ -1,3 +1,5 @@
+import ReturnButton from "@/components/returnButton";
+import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -12,7 +14,7 @@ import {
 
 const { width, height } = Dimensions.get("window");
 
-const guideLogo = require("@/assets/images/aiscreenn.png");
+const guideLogo = require("@/assets/images/successLogo.png");
 
 export default function AiSuccessPage() {
   const [aiData, setAiData] = useState<any>(null);
@@ -42,52 +44,38 @@ export default function AiSuccessPage() {
       style={{ flex: 1 }}
     >
       <View style={styles.container}>
-        {/* 头像区域 */}
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Image
-              source={guideLogo}
-              style={styles.avatarImage}
-            />
-          </View>
-        </View>
-
         {/* 成功标题 */}
         <View style={styles.titleContainer}>
           <Text style={styles.titleText}>个性化定制成功！</Text>
-          <View style={styles.successIndicator}>
-            <Text style={styles.successIcon}>✓</Text>
+        </View>
+
+        {/* 头像区域 */}
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <Image source={guideLogo} style={styles.avatarImage} />
           </View>
         </View>
 
         {/* 祝福文字 */}
         <View style={styles.messageContainer}>
-          <Text style={styles.messageText}>
-            祝您使用愉快！
-          </Text>
+          <Text style={styles.messageText}>祝您使用愉快！</Text>
         </View>
 
         {/* 开始使用按钮 */}
         <View style={styles.buttonContainer}>
-          <Pressable 
-            style={styles.startButton}
-            onPress={handleStartUsing}
-          >
-            <View style={styles.buttonIcon}>
-              <Text style={styles.buttonIconText}>✓</Text>
-            </View>
+          <Pressable style={styles.startButton} onPress={handleStartUsing}>
+            <Feather name="check-circle" size={width * 0.1} color="black"  style={
+              {
+               marginTop: height * 0.005
+              }
+            }/>
             <Text style={styles.startButtonText}>开始使用</Text>
           </Pressable>
         </View>
 
         {/* 返回按钮区域 */}
         <View style={styles.returnButtonContainer}>
-          <Pressable 
-            style={styles.returnButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.returnButtonText}>‹</Text>
-          </Pressable>
+          <ReturnButton />
         </View>
       </View>
     </LinearGradient>
@@ -121,7 +109,7 @@ const styles = StyleSheet.create({
     marginBottom: height * 0.03,
   },
   titleText: {
-    fontSize: width * 0.065,
+    fontSize: width * 0.08,
     color: "#333",
     textAlign: "center",
     fontWeight: "600",
@@ -149,22 +137,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   messageContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    borderRadius: width * 0.05,
     paddingHorizontal: width * 0.08,
     paddingVertical: height * 0.03,
-    marginBottom: height * 0.06,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    marginBottom: height * 0.03,
   },
   messageText: {
-    fontSize: width * 0.055,
+    fontSize: width * 0.08,
     color: "#333",
     textAlign: "center",
     fontWeight: "500",
@@ -175,10 +153,13 @@ const styles = StyleSheet.create({
   startButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFB6C1",
-    paddingHorizontal: width * 0.08,
+    backgroundColor: "#FFD8D8",
+    paddingHorizontal: width * 0.03,
     paddingVertical: height * 0.02,
-    borderRadius: width * 0.08,
+    borderRadius: width * 0.045,
+
+    gap: width * 0.03,
+
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -203,9 +184,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   startButtonText: {
-    fontSize: width * 0.05,
-    color: "white",
-    fontWeight: "600",
+    fontSize: width * 0.08,
+    color: "#333",
+    fontWeight: "500",
+    lineHeight: width * 0.08,
   },
   returnButtonContainer: {
     position: "absolute",

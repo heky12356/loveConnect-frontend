@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   Alert,
   Dimensions,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,6 +14,7 @@ import {
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
+const guideLogo = require("@/assets/images/feedbackLogo.png");
 
 interface Question {
   id: string;
@@ -109,11 +111,14 @@ export default function AiPersonalityPage() {
     if (currentQuestionIndex === 0) {
       return (
         <View style={styles.introContainer}>
-          <Text style={styles.introText}>
-            您为家里操劳了这么多年，默默付出了太多。现在我想更多了解您的想法，希望能做些让您舒心、开心的事，可又怕自己考虑不周全，没能猜对您心意。想听听您的想法，有哪些让您特别重要，谢谢您呢！
-          </Text>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>👼</Text>
+          <View style={styles.introTextContainer}>
+            <Text style={styles.introText}>
+              您为家里操劳了这么多年，默默付出了太多。现在我想更多了解您的想法，希望能做些让您舒心、开心的事，可又怕自己考虑不周全，没能猜对您心意。想听听您的想法，有哪些让您特别重要，谢谢您呢！
+            </Text>
+            <Image
+              source={guideLogo}
+              style={styles.introImage}
+            />
           </View>
           <View style={styles.actionButtons}>
             <Pressable style={styles.actionButton} onPress={() => setCurrentQuestionIndex(1)}>
@@ -128,13 +133,11 @@ export default function AiPersonalityPage() {
     }
 
     return (
-      <View style={styles.questionContainer}>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>👼</Text>
+      <View style={styles.questionContainer}>        
+        <View style={styles.describtion}>
+          <Text style={styles.questionText}>{currentQuestion.question}</Text>
+          <Image source={guideLogo} style={styles.questionImage} />
         </View>
-        
-        <Text style={styles.questionText}>{currentQuestion.question}</Text>
-        
         <View style={styles.optionsContainer}>
           {currentQuestion.options.map((option, index) => (
             <Pressable
@@ -145,11 +148,19 @@ export default function AiPersonalityPage() {
               ]}
               onPress={() => handleOptionSelect(option)}
             >
-              <View style={[
-                styles.radioButton,
-                answers[currentQuestion.id] === option && styles.selectedRadio
-              ]} />
               <Text style={styles.optionText}>{option}</Text>
+              <View style={styles.radioContainer}>
+                <View
+                  style={[
+                    styles.radioButton,
+                    answers[currentQuestion.id] === option && styles.selectedRadio,
+                  ]}
+                >
+                  {answers[currentQuestion.id] === option && (
+                    <View style={styles.radioButtonInner} />
+                  )}
+                </View>
+              </View>
             </Pressable>
           ))}
         </View>
@@ -159,7 +170,7 @@ export default function AiPersonalityPage() {
 
   return (
     <LinearGradient
-      colors={["#FFE4E1", "#FFF8DC", "#F0F8FF", "#FFE4E1"]}
+      colors={["#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"]}
       locations={[0.1, 0.4, 0.6, 0.9]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -211,15 +222,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: width * 0.05,
   },
-  introText: {
-    fontSize: width * 0.04,
-    lineHeight: width * 0.06,
-    color: "#333",
-    textAlign: "left",
+  introTextContainer: {
+    width: "100%",
     marginBottom: height * 0.04,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    backgroundColor: "#FFCBCB",
     padding: width * 0.05,
     borderRadius: width * 0.03,
+  },
+  introText: {
+    fontSize: width * 0.07,
+    // lineHeight: width * 0.06,
+    color: "#333",
+    textAlign: "center",
+  },
+  introImage: {
+    width: width * 0.25,
+    height: width * 0.25,
+    resizeMode: "contain",
+    alignSelf: "flex-end",
   },
   avatarContainer: {
     width: width * 0.15,
@@ -242,38 +262,58 @@ const styles = StyleSheet.create({
     fontSize: width * 0.06,
   },
   actionButtons: {
+    display: "flex",
     flexDirection: "row",
-    gap: width * 0.05,
+    justifyContent: "space-between",
+    width: "100%",
+    // gap: width * 0.05,
   },
   actionButton: {
     paddingHorizontal: width * 0.06,
     paddingVertical: height * 0.015,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    backgroundColor: "#FFCDCD",
     borderRadius: width * 0.03,
     borderWidth: 1,
     borderColor: "#ddd",
   },
   primaryButton: {
-    backgroundColor: "#FFB6C1",
+    backgroundColor: "#FFCDCD",
     borderColor: "#FFB6C1",
   },
   actionButtonText: {
-    fontSize: width * 0.04,
-    color: "#666",
+    fontSize: width * 0.055,
+    color: "#333",
   },
   primaryButtonText: {
-    color: "white",
+    color: "#333",
   },
   questionContainer: {
     flex: 1,
     alignItems: "center",
     paddingTop: height * 0.05,
+
+    display: "flex",
+    gap: height * 0.03,
+  },
+  describtion: {
+    width: "90%",
+    padding: width * 0.05,
+    backgroundColor: "#FFE9E9",
+    borderRadius: width * 0.05,
+
+    display: "flex",
+  },
+  questionImage: {
+    width: width * 0.3,
+    height: width * 0.3,
+    resizeMode: "contain",
+    alignSelf: "flex-end",
   },
   questionText: {
-    fontSize: width * 0.05,
+    fontSize: width * 0.06,
     color: "#333",
-    textAlign: "center",
-    marginBottom: height * 0.04,
+    textAlign: "left",
+    fontWeight: "500",
     paddingHorizontal: width * 0.05,
   },
   optionsContainer: {
@@ -288,27 +328,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.05,
     marginBottom: height * 0.015,
     borderRadius: width * 0.03,
-    borderWidth: 1,
+    // borderWidth: 1,
     borderColor: "#ddd",
   },
   selectedOption: {
-    backgroundColor: "#FFE4E1",
+    // backgroundColor: "#FFE4E1",
     borderColor: "#FFB6C1",
-  },
-  radioButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#ddd",
-    marginRight: width * 0.03,
   },
   selectedRadio: {
-    borderColor: "#FFB6C1",
-    backgroundColor: "#FFB6C1",
+    // borderColor: "#FFB6C1",
+    // backgroundColor: "#FFB6C1",
   },
   optionText: {
-    fontSize: width * 0.04,
+    fontSize: width * 0.06,
     color: "#333",
     flex: 1,
   },
@@ -325,22 +357,58 @@ const styles = StyleSheet.create({
     gap: width * 0.03,
   },
   navButton: {
-    paddingHorizontal: width * 0.05,
-    paddingVertical: height * 0.015,
+    width: width * 0.3,
+    height: height * 0.07,
     backgroundColor: "rgba(255, 255, 255, 0.8)",
     borderRadius: width * 0.03,
     borderWidth: 1,
     borderColor: "#ddd",
+
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
   },
   nextButton: {
-    backgroundColor: "#87CEEB",
-    borderColor: "#87CEEB",
+    backgroundColor: "#A7BAFF",
+    // borderColor: "#87CEEB",
   },
   navButtonText: {
     fontSize: width * 0.04,
     color: "#666",
   },
   nextButtonText: {
-    color: "white",
+    color: "#333",
+    fontSize: width * 0.07,
+    lineHeight: width * 0.07,
+  },
+  radioContainer: {
+    padding: width * 0.01,
+  },
+  radioButton: {
+    width: width * 0.08,
+    height: width * 0.08,
+    borderRadius: width * 0.04,
+    borderWidth: 2,
+    borderColor: "black",
+    backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "black",
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.5,
+    shadowRadius: 1,
+    elevation: 5,
+  },
+  radioButtonSelected: {
+    borderColor: "#333",
+  },
+  radioButtonInner: {
+    width: width * 0.05,
+    height: width * 0.05,
+    borderRadius: width * 0.05,
+    backgroundColor: "#FEADB4",
   },
 });
