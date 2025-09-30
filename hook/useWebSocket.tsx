@@ -1,7 +1,8 @@
 import { log } from '@/api/config';
-import wsManager, { AiChatRequest, AiChatResponse } from '@/api/websocketManager';
+import { AiChatRequest, AiChatResponse, getWebSocketManagerWithUser } from '@/api/websocketManager';
 import { ConnectionState, NotificationData, WebSocketError, WebSocketState } from '@/types/websocket';
 import { notificationUtils } from '@/utils/notificationUtils';
+import { useAuth } from '@/contexts/AuthContext';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
 interface NotificationStats {
@@ -44,6 +45,7 @@ interface WebSocketProviderProps {
 }
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
+  const { user } = useAuth(); // 获取当前用户信息
   const [wsState, setWsState] = useState<WebSocketState>({
     isConnected: false,
     connectionState: ConnectionState.CLOSED,
@@ -54,7 +56,16 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [readNotifications, setReadNotifications] = useState<Set<string>>(new Set());
 
+  // 根据用户信息动态获取 WebSocket 管理器
+  const wsManager = user?.uId ? getWebSocketManagerWithUser(user.uId) : null;
+
   useEffect(() => {
+    // 如果没有 WebSocket 管理器（用户未登录），则不进行连接
+    if (!wsManager) {
+      log.warn('用户未登录，跳过 WebSocket 连接');
+      return;
+    }
+
     // 状态变化处理
     const handleStateChange = (newState: WebSocketState) => {
       setWsState(newState);
@@ -66,26 +77,26 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         ...data,
         timestamp: data.timestamp || Date.now()
       };
-      
+
       setNotifications(prev => {
         console.log('添加通知前，当前通知数量:', prev.length);
         console.log('新通知ID:', notificationWithTimestamp.id);
-        
+
         // 检查是否已存在相同ID的通知
         const exists = prev.some(n => n.id === notificationWithTimestamp.id);
         if (exists) {
           console.log('通知ID已存在，跳过添加');
           return prev;
         }
-        
+
         // 添加新通知，暂时跳过processNotifications去重逻辑
         const newNotifications = [notificationWithTimestamp, ...prev];
         console.log('添加通知后，通知数量:', newNotifications.length);
-        
+
         // 保留最新50条
         return newNotifications.slice(0, 50);
       });
-      
+
       // 可以在这里集成推送通知
       // showPushNotification(notificationWithTimestamp);
     };
@@ -93,7 +104,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     // 错误处理
     const handleError = (error: WebSocketError) => {
       log.error('WebSocket 错误:', error);
-      
+
       // 根据错误类型显示不同的用户提示
       switch (error.type) {
         case 'network':
@@ -134,17 +145,22 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       wsManager.off('ai_greeting', handleAiGreeting);
       wsManager.off('error', handleError);
     };
-  }, []);
+  }, [wsManager]); // 依赖于 wsManager，当用户登录状态变化时重新连接
 
   // 发送消息
   const sendMessage = useCallback(async (message: any): Promise<boolean> => {
+    if (!wsManager) {
+      log.error('用户未登录，无法发送消息');
+      return false;
+    }
+
     try {
       return await wsManager.send(message);
     } catch (error) {
       log.error('发送消息失败:', error);
       return false;
     }
-  }, []);
+  }, [wsManager]);
 
   // 清空通知
   const clearNotifications = useCallback(() => {
@@ -165,13 +181,17 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
   // 重试连接
   const retryConnection = useCallback(async (): Promise<void> => {
+    if (!wsManager) {
+      throw new Error('用户未登录，无法重试连接');
+    }
+
     try {
       await wsManager.connect();
     } catch (error) {
       log.error('重试连接失败:', error);
       throw error;
     }
-  }, []);
+  }, [wsManager]);
 
   // 清除错误
   const clearError = useCallback(() => {
@@ -199,23 +219,35 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
   // 发送AI聊天消息
   const sendChatMessage = useCallback(async (message: AiChatRequest): Promise<boolean> => {
+    if (!wsManager) {
+      log.error('用户未登录，无法发送AI聊天消息');
+      return false;
+    }
+
     try {
       return await wsManager.sendChatMessage(message);
     } catch (error) {
       log.error('发送AI聊天消息失败:', error);
       return false;
     }
-  }, []);
+  }, [wsManager]);
 
   // 监听AI聊天响应
   const onChatResponse = useCallback((callback: (response: AiChatResponse) => void) => {
+    if (!wsManager) {
+      log.warn('用户未登录，无法注册AI聊天响应监听器');
+      return;
+    }
     wsManager.onChatResponse(callback);
-  }, []);
+  }, [wsManager]);
 
   // 取消监听AI聊天响应
   const offChatResponse = useCallback((callback: (response: AiChatResponse) => void) => {
+    if (!wsManager) {
+      return;
+    }
     wsManager.offChatResponse(callback);
-  }, []);
+  }, [wsManager]);
 
   return (
     <WebSocketContext.Provider value={{

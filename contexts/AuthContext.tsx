@@ -14,6 +14,7 @@ export interface User {
   urgentPhone: string;
   email?: string;
   token?: string;
+  uId?: string; // 添加数据库中的真实用户ID
 }
 
 // 认证状态接口
@@ -26,7 +27,7 @@ interface AuthState {
 
 // 认证上下文接口
 interface AuthContextType extends AuthState {
-  login: (userData: User, token: string) => Promise<void>;
+  login: (userData: User, token: string, credentials?: { phone: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -39,6 +40,7 @@ const STORAGE_KEYS = {
   USER: '@loveConnect:user',
   TOKEN: '@loveConnect:token',
   IS_LOGGED_IN: '@loveConnect:isLoggedIn',
+  CREDENTIALS: '@loveConnect:credentials', // 新增：保存用户凭证（手机号和密码）
 };
 
 // 创建认证上下文
@@ -62,15 +64,56 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const initializeAuth = async () => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
-      
-      const [storedUser, storedToken, storedIsLoggedIn] = await Promise.all([
+
+      const [storedUser, storedToken, storedIsLoggedIn, storedCredentials] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.USER),
         AsyncStorage.getItem(STORAGE_KEYS.TOKEN),
         AsyncStorage.getItem(STORAGE_KEYS.IS_LOGGED_IN),
+        AsyncStorage.getItem(STORAGE_KEYS.CREDENTIALS),
       ]);
 
+      console.log('初始化认证状态:', {
+        hasUser: !!storedUser,
+        hasToken: !!storedToken,
+        isLoggedIn: storedIsLoggedIn,
+        hasCredentials: !!storedCredentials,
+      });
+
+      // 如果有保存的凭证，尝试自动重新登录
+      if (storedCredentials) {
+        try {
+          const credentials = JSON.parse(storedCredentials);
+          console.log('尝试自动重新登录:', credentials.phone);
+
+          // 动态导入 authManager 避免循环依赖
+          const { getAuthManager } = await import('../api/authManager');
+          const authManager = getAuthManager();
+
+          // 重新登录获取新的 token
+          const { user: userData, token } = await authManager.login(credentials.phone, credentials.password);
+
+          console.log('自动重新登录成功:', userData.name, userData.phone);
+
+          setAuthState({
+            user: userData,
+            isLoggedIn: true,
+            isLoading: false,
+            token,
+          });
+
+          return; // 成功自动登录，直接返回
+        } catch (autoLoginError) {
+          console.error('自动重新登录失败:', autoLoginError);
+          // 自动登录失败，清除无效的凭证
+          await AsyncStorage.removeItem(STORAGE_KEYS.CREDENTIALS);
+        }
+      }
+
+      // 如果有存储的用户信息和 token，尝试恢复（但优先级低于自动重新登录）
       if (storedUser && storedToken && storedIsLoggedIn === 'true') {
         const user: User = JSON.parse(storedUser);
+        console.log('恢复已保存的登录状态:', user.name, user.phone);
+
         setAuthState({
           user,
           isLoggedIn: true,
@@ -78,21 +121,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           token: storedToken,
         });
       } else {
-        // 如果没有存储的认证信息，创建默认用户（兼容现有代码）
-        const defaultUser: User = {
-          id: 'default_user',
-          name: "张三",
-          gender: "男",
-          date: "2023-01-01",
-          avatar: "https://pan.heky.top/tmp/profile.png",
-          phone: "114514",
-          address: "中国",
-          urgentPhone: "22333",
-        };
-        
+        console.log('无有效的认证信息，设置为未登录状态');
+        // 没有有效的认证信息，设置为未登录状态
         setAuthState({
-          user: defaultUser,
-          isLoggedIn: false, // 默认用户未登录状态
+          user: null,
+          isLoggedIn: false,
           isLoading: false,
           token: null,
         });
@@ -111,13 +144,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // 登录函数
-  const login = async (userData: User, token: string) => {
+  const login = async (userData: User, token: string, credentials?: { phone: string; password: string }) => {
     try {
-      await Promise.all([
+      const storagePromises = [
         AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData)),
         AsyncStorage.setItem(STORAGE_KEYS.TOKEN, token),
         AsyncStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, 'true'),
-      ]);
+      ];
+
+      // 如果提供了凭证，保存以便自动重新登录
+      if (credentials) {
+        console.log('保存用户凭证以便自动重新登录:', credentials.phone);
+        storagePromises.push(
+          AsyncStorage.setItem(STORAGE_KEYS.CREDENTIALS, JSON.stringify(credentials))
+        );
+      }
+
+      await Promise.all(storagePromises);
 
       setAuthState({
         user: userData,
@@ -136,17 +179,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       // 获取当前用户手机号，用于清除用户数据
       const userPhone = authState.user?.phone;
-      
+
       await Promise.all([
         AsyncStorage.removeItem(STORAGE_KEYS.USER),
         AsyncStorage.removeItem(STORAGE_KEYS.TOKEN),
         AsyncStorage.removeItem(STORAGE_KEYS.IS_LOGGED_IN),
+        AsyncStorage.removeItem(STORAGE_KEYS.CREDENTIALS), // 清除保存的凭证
       ]);
 
       // 清除该用户的所有本地数据
       if (userPhone) {
         await UserIsolatedStorage.clearUserData(userPhone);
-        console.log(`已清除用户 ${userPhone} 的所有本地数据`);
+        console.log(`已清除用户 ${userPhone} 的所有本地数据和凭证`);
       }
 
       setAuthState({

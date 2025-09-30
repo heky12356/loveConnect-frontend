@@ -11,12 +11,35 @@ export const useAuthManager = () => {
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // 同步用户信息到 infoManager
+  // 设置用户更新回调，在InfoManager更新成功后同步到AuthContext
+  useEffect(() => {
+    const handleUserUpdated = async (updatedInfo: Partial<User>) => {
+      if (user) {
+        try {
+          console.log('InfoManager通知用户更新:', updatedInfo);
+          await updateUser(updatedInfo);
+        } catch (error) {
+          console.error('同步用户信息到AuthContext失败:', error);
+        }
+      }
+    };
+
+    infoManager.setUserUpdatedCallback(handleUserUpdated);
+
+    // 清理回调
+    return () => {
+      infoManager.setUserUpdatedCallback(() => {});
+    };
+  }, [infoManager, user, updateUser]);
+
+  // 同步用户信息到 infoManager - 只在必要时触发
   useEffect(() => {
     const syncUserInfo = async () => {
       if (user && isInitialized) {
         try {
           await infoManager.initialize();
+          // 只在用户首次登录或重要状态变化时同步
+          console.log('检查是否需要同步用户信息');
           await infoManager.syncWithAuth(user);
         } catch (error) {
           console.error('同步用户信息失败:', error);
@@ -25,17 +48,22 @@ export const useAuthManager = () => {
     };
 
     syncUserInfo();
-  }, [user, isInitialized, infoManager]);
+  }, [user, isInitialized]); // 移除 infoManager 依赖，避免不必要的同步
 
   // 登录函数
   const handleLogin = async (phone: string, password: string) => {
     console.log("handle login", phone, password);
     setIsProcessing(true);
     setError(null);
-    
+
     try {
       const { user: userData, token } = await authManager.login(phone, password);
-      await login(userData, token);
+
+      // 保存用户凭证以便自动重新登录
+      const credentials = { phone, password };
+      await login(userData, token, credentials);
+
+      console.log('登录成功，已保存凭证用于自动重新登录');
       return userData;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '登录失败';
@@ -98,7 +126,7 @@ export const useAuthManager = () => {
   }>) => {
     setIsProcessing(true);
     setError(null);
-    
+
     try {
       if (!user) {
         throw new Error('用户未登录');
@@ -106,14 +134,42 @@ export const useAuthManager = () => {
 
       // 更新认证系统中的用户信息
       const updatedUser = await authManager.updateUserProfile(profileData);
+
+      // 立即同步到 AuthContext，确保状态一致
       await updateUser(updatedUser);
-      
+
       // 同步到 infoManager
       await infoManager.syncWithAuth(updatedUser);
-      
+
       return updatedUser;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '更新资料失败';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 新增头像上传方法，确保状态同步
+  const handleUploadAvatar = async (imageFile: File) => {
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      if (!user) {
+        throw new Error('用户未登录');
+      }
+
+      // 使用 infoManager 上传头像
+      const avatarUrl = await infoManager.uploadAvatar(imageFile);
+
+      // 立即更新 AuthContext 中的用户头像
+      await updateUser({ ...user, avatar: avatarUrl });
+
+      return avatarUrl;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '头像上传失败';
       setError(errorMessage);
       throw error;
     } finally {
@@ -209,6 +265,7 @@ export const useAuthManager = () => {
 
     // 用户资料操作
     updateProfile: handleUpdateProfile,
+    uploadAvatar: handleUploadAvatar, // 新增头像上传方法
     changePassword: handleChangePassword,
     resetPassword: handleResetPassword,
 

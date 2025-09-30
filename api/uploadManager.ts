@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ApiResponse, handleApiError, handleApiResponse } from './apiUtils';
-import { isDevelopment, config } from './config';
+import { config, isDevelopment } from './config';
 
 // const mod = "development";
 
@@ -42,10 +42,15 @@ class UploadManagerImpl implements UploadManager {
       if (!token) {
         throw new Error('未找到认证令牌');
       }
-      
+
       const formData = new FormData();
-      formData.append('file', imageFile);
-      
+      // React Native FormData需要特殊格式
+      formData.append('file', {
+        uri: (imageFile as any).uri,
+        name: (imageFile as any).name || 'avatar.jpg',
+        type: (imageFile as any).type || 'image/jpeg'
+      } as any);
+
       const response = await fetch(`${this.baseURL}/user/uploadAvatar`, {
         method: 'POST',
         headers: {
@@ -53,7 +58,7 @@ class UploadManagerImpl implements UploadManager {
         },
         body: formData,
       });
-      
+
       const result: ApiResponse<string> = await response.json();
       return handleApiResponse(result);
     } catch (error) {
@@ -64,14 +69,22 @@ class UploadManagerImpl implements UploadManager {
   async uploadImage(imageFile: File): Promise<string> {
     try {
       const formData = new FormData();
-      formData.append('file', imageFile);
-      
+      // React Native FormData需要特殊格式
+      formData.append('file', {
+        uri: (imageFile as any).uri,
+        name: (imageFile as any).name || 'image.jpg',
+        type: (imageFile as any).type || 'image/jpeg'
+      } as any);
+
       const response = await fetch(`${this.baseURL}/user/imagebed`, {
         method: 'POST',
         body: formData,
       });
-      
+
+      console.log('上传图片响应状态:', response.status, response.ok);
+
       const result: ApiResponse<string> = await response.json();
+      console.log('上传图片响应内容:', result);
       return handleApiResponse(result);
     } catch (error) {
       handleApiError(error);

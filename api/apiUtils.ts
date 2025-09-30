@@ -75,8 +75,9 @@ export async function authenticatedApiRequest<T>(
   return apiRequest<T>(url, {
     ...options,
     headers: {
-      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
       ...options.headers,
+      'Authorization': `Bearer ${token}`, // Authorization 放在最后确保不被覆盖
     },
   });
 }

@@ -17,6 +17,7 @@ const { height, width } = Dimensions.get("window");
 export default function TimeSet() {
   const [selectedHour, setSelectedHour] = useState(2);
   const [selectedMinute, setSelectedMinute] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const hourScrollRef = useRef<ScrollView>(null);
   const minuteScrollRef = useRef<ScrollView>(null);
@@ -43,16 +44,20 @@ export default function TimeSet() {
   };
 
   const handleConfirm = async () => {
+    // 防止重复提交
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     const timeString = `${selectedHour.toString().padStart(2, "0")}:${selectedMinute
       .toString()
       .padStart(2, "0")}`;
-    
+
     console.log(`设置时间: ${timeString}`);
-    
+
     try {
       // 调用API更新定时问候时间
       const result = await timeManager.updateGreetingCron(timeString);
-      
+
       if (result.success) {
         Alert.alert(
           "设置成功",
@@ -73,6 +78,8 @@ export default function TimeSet() {
         "网络错误，请稍后重试",
         [{ text: "确定" }]
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -159,11 +166,35 @@ export default function TimeSet() {
           </View>
 
           <View style={styles.buttonContainer}>
-            <Pressable style={styles.confirmButton} onPress={handleConfirm}>
-              <Text style={styles.confirmButtonText}>确定</Text>
+            <Pressable
+              style={[
+                styles.confirmButton,
+                isSubmitting && styles.disabledButton
+              ]}
+              onPress={handleConfirm}
+              disabled={isSubmitting}
+            >
+              <Text style={[
+                styles.confirmButtonText,
+                isSubmitting && styles.disabledButtonText
+              ]}>
+                {isSubmitting ? "设置中..." : "确定"}
+              </Text>
             </Pressable>
-            <Pressable style={styles.resetButton} onPress={handleReset}>
-              <Text style={styles.resetButtonText}>重置</Text>
+            <Pressable
+              style={[
+                styles.resetButton,
+                isSubmitting && styles.disabledButton
+              ]}
+              onPress={handleReset}
+              disabled={isSubmitting}
+            >
+              <Text style={[
+                styles.resetButtonText,
+                isSubmitting && styles.disabledButtonText
+              ]}>
+                重置
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -302,6 +333,12 @@ const styles = StyleSheet.create({
     fontSize: width * 0.05,
     color: "#333",
     fontWeight: "600",
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  disabledButtonText: {
+    color: "#999",
   },
   returnButton: {
     height: height * 0.13,

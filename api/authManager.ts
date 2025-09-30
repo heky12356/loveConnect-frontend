@@ -420,7 +420,7 @@ class AuthManagerImpl implements AuthManager {
       const userData = handleApiResponse(result);
       
       return {
-        id: userData.phone, // 使用手机号作为ID
+        id: userData.uId || userData.phone, // 优先使用uId，如果没有则使用phone作为备用
         name: userData.name,
         gender: userData.gender || '',
         date: userData.birthday || '',
@@ -429,6 +429,7 @@ class AuthManagerImpl implements AuthManager {
         address: userData.address || '',
         urgentPhone: userData.phone, // 默认使用主手机号
         email: userData.phone + '@loveconnect.com', // 生成默认邮箱
+        uId: userData.uId, // 添加真实的数据库用户ID
       };
     } catch (error) {
       handleApiError(error);
@@ -463,7 +464,7 @@ class AuthManagerImpl implements AuthManager {
       const updatedUserData = handleApiResponse(result);
 
       const updatedUser: User = {
-        id: updatedUserData.phone,
+        id: updatedUserData.uId || updatedUserData.phone,
         name: updatedUserData.name,
         gender: updatedUserData.gender || '',
         date: updatedUserData.birthday || '',
@@ -472,6 +473,7 @@ class AuthManagerImpl implements AuthManager {
         address: updatedUserData.address || '',
         urgentPhone: updatedUserData.phone,
         email: updatedUserData.phone + '@loveconnect.com',
+        uId: updatedUserData.uId, // 保持用户的真实ID
       };
       
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
@@ -582,13 +584,17 @@ class AuthManagerImpl implements AuthManager {
     }
 
     try {
+      // 根据接口文档，使用正确的参数格式
       const response = await fetch(`${this.baseURL}/user/mood/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ uid, userMood }),
+        body: JSON.stringify({
+          uid, // 使用数据库中的真实用户ID (uId)
+          userMood
+        }),
       });
 
       const result: ApiResponse<{ uid: string; savedMood: string }> = await response.json();

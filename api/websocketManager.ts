@@ -83,10 +83,10 @@ class WebSocketManagerImpl implements WebSocketManager {
   }
 
   static getInstance(url?: string, uid?: string): WebSocketManagerImpl {
-    // 构建完整的WebSocket URL，包含用户标识
-    const baseUrl = url || 'ws://192.168.1.6:8080/ws/chat/test';
+    // 使用配置文件中的 WebSocket URL
+    const baseUrl = url || config.websocket.url;
     const fullUrl = uid ? `${baseUrl}/${uid}` : baseUrl;
-    
+
     console.log('WebSocket URL:', fullUrl);
 
     if (!WebSocketManagerImpl.instance) {
@@ -706,8 +706,19 @@ export function getWebSocketManager(uid?: string): WebSocketManager {
   if (isDevelopment() || config.features.enableMockData) {
     return WebSocketManagerMock.getInstance();
   } else {
+    // 如果没有提供 uid，尝试从 AsyncStorage 获取当前用户信息
+    if (!uid) {
+      // 在实际使用时，可以从 AuthContext 或 AsyncStorage 获取用户ID
+      // 这里先使用默认用户ID，实际项目中应该传入真实的用户ID
+      console.warn('WebSocket 连接缺少用户ID，使用默认值。建议传入当前用户ID。');
+    }
     return WebSocketManagerImpl.getInstance(config.websocket.url, uid);
   }
+}
+
+// 提供一个带用户ID的 WebSocket 实例获取方法
+export function getWebSocketManagerWithUser(userPhone: string): WebSocketManager {
+  return getWebSocketManager(userPhone);
 }
 
 // 默认导出不带参数的实例，保持向后兼容
