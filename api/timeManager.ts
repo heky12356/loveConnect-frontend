@@ -2,7 +2,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { UserIsolatedStorage } from '../utils/storageUtils';
-import { apiRequest } from './apiUtils';
 import { log } from './config';
 
 const STORAGE_KEY = "Times";
@@ -205,29 +204,71 @@ export class timeManager {
   }
 
   // 修改定时问候时间
-  static async updateGreetingCron(greetingCron: string): Promise<{ success: boolean; message: string }> {
+  static async updateGreetingCron(timeString: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await apiRequest('/user/config/greeting-cron', {
+      // 将时间字符串转换为Cron表达式
+      // 时间格式从 "HH:mm" 转换为 "0 mm HH * * ?"
+      const [hours, minutes] = timeString.split(':').map(Number);
+      const greetingCron = `0 ${minutes} ${hours} * * ?`;
+
+      console.log(`转换时间格式: ${timeString} -> ${greetingCron}`);
+
+      // 动态导入配置和认证API工具
+      const { config } = await import('./config');
+      const { authenticatedApiRequest } = await import('./apiUtils');
+
+      // 获取认证token
+      const { getAuthManager } = await import('./authManager');
+      const authManager = getAuthManager();
+      const token = await authManager.getToken();
+
+      if (!token) {
+        return {
+          success: false,
+          message: '用户未登录，请先登录'
+        };
+      }
+
+      // 构建完整的API URL
+      const apiUrl = `${config.api.baseUrl}/user/config/greeting-cron`;
+      console.log('API URL:', apiUrl);
+      console.log('请求数据:', { greetingCron });
+
+      const response = await authenticatedApiRequest(apiUrl, token, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ greetingCron })
       });
 
-      if ((response as any).code === 200) {
-        return {
-          success: true,
-          message: (response as any).msg || '定时问候时间已更新'
-        };
-      } else {
-        return {
-          success: false,
-          message: (response as any).msg || '更新失败'
-        };
-      }
+      console.log('API响应:', response);
+
+      return {
+        success: true,
+        message: '定时问候时间已更新'
+      };
+
     } catch (error) {
       log.error('更新定时问候时间失败:', error);
+
+      // 增强错误处理
+      if (error instanceof Error) {
+        if (error.message.includes('JSON Parse error')) {
+          return {
+            success: false,
+            message: '服务器返回格式错误，请检查接口地址是否正确'
+          };
+        } else if (error.message.includes('Network request failed')) {
+          return {
+            success: false,
+            message: '网络连接失败，请检查网络连接'
+          };
+        } else if (error.message.includes('未授权')) {
+          return {
+            success: false,
+            message: '用户认证失败，请重新登录'
+          };
+        }
+      }
+
       return {
         success: false,
         message: '网络错误，请稍后重试'
