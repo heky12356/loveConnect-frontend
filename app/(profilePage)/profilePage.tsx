@@ -1,5 +1,7 @@
 import { getInfoManager } from "@/api/infoManeger";
 import ReturnButton from "@/components/returnButton";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAuthManager } from "@/hook/useAuthManager";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
@@ -36,12 +38,15 @@ const ProfileItem = ({ label, value, showArrow = true, onPress }: { label: strin
 };
 
 export default function ProfilePage() {
+  const { user } = useAuth();
+  const { uploadAvatar, updateProfile } = useAuthManager();
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
   const [info, setInfo] = useState<any>({});
   const [selectedYear, setSelectedYear] = useState(1990);
   const [selectedMonth, setSelectedMonth] = useState(1);
   const [selectedDay, setSelectedDay] = useState(1);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   
   // 生成年份数组 (1950-2024)
   const years = Array.from({ length: 75 }, (_, i) => 1950 + i);
@@ -69,6 +74,27 @@ export default function ProfilePage() {
       fetchInfo();
     }, [fetchInfo])
   );
+
+  // 当 AuthContext 中的用户信息更新时，智能同步到本地 info 状态
+  useEffect(() => {
+    if (user) {
+      // 从 AuthContext 同步用户信息到本地状态，但保留本地已有的有效值
+      setInfo((prev: { name: string; gender: string; date: string; avatar: string; phone: string; address: string; urgentPhone: string; }) => {
+        const updatedInfo = { ...prev };
+
+        // 只有当 AuthContext 中的字段值不为空时，才覆盖本地值
+        if (user.name && user.name !== prev.name) updatedInfo.name = user.name;
+        if (user.gender && user.gender !== prev.gender) updatedInfo.gender = user.gender;
+        if (user.date && user.date !== prev.date) updatedInfo.date = user.date;
+        if (user.avatar && user.avatar !== prev.avatar) updatedInfo.avatar = user.avatar;
+        if (user.phone && user.phone !== prev.phone) updatedInfo.phone = user.phone;
+        if (user.address && user.address !== prev.address) updatedInfo.address = user.address;
+        if (user.urgentPhone && user.urgentPhone !== prev.urgentPhone) updatedInfo.urgentPhone = user.urgentPhone;
+
+        return updatedInfo;
+      });
+    }
+  }, [user]);  // 当 user 变化时重新同步
 
   // 处理头像上传
   const handleAvatarUpload = async () => {
@@ -100,9 +126,9 @@ export default function ProfilePage() {
             type: asset.mimeType || 'image/jpeg'
           } as any;
 
-          // 使用infoManager上传头像
-          const avatarUrl = await infoManager.uploadAvatar(file);
-          
+          // 使用统一的头像上传方法，确保状态同步
+          const avatarUrl = await uploadAvatar(file);
+
           // 刷新用户信息
           await fetchInfo();
           
@@ -189,15 +215,28 @@ export default function ProfilePage() {
           <View style={styles.modalContent}>
             <View style={styles.birthdayContainer}>
               <Text style={styles.birthdayTitle}>生日</Text>
-              <Pressable 
+              <Pressable
                 style={styles.confirmButton}
                 onPress={async () => {
-                  // 保存选中的日期到 info 状态
-                  const selectedDate = `${selectedYear}-${selectedMonth}-${selectedDay}`;
-                  await infoManager.updateDate(selectedDate);
-                  const info = await infoManager.getInfo();
-                  setInfo(info);
-                  setShowBirthdayModal(false);
+                  try {
+                    setIsUpdating(true);
+                    // 保存选中的日期到 info 状态
+                    const selectedDate = `${selectedYear}-${selectedMonth}-${selectedDay}`;
+
+                    // 使用 infoManager 的 updateDate 方法，只更新生日字段
+                    await infoManager.updateDate(selectedDate);
+
+                    // 同时更新本地 state
+                    const updatedInfo = { ...info, date: selectedDate };
+                    setInfo(updatedInfo);
+                    setShowBirthdayModal(false);
+                    Alert.alert('成功', '生日修改成功');
+                  } catch (error) {
+                    console.error('修改生日失败:', error);
+                    Alert.alert('错误', '修改生日失败，请重试');
+                  } finally {
+                    setIsUpdating(false);
+                  }
                 }}
               >
                 <Text style={styles.confirmButtonText}>确定</Text>

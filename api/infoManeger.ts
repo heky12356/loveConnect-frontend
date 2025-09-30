@@ -33,6 +33,8 @@ interface InfoManager {
   uploadAvatar: (imageFile: File) => Promise<string>;
   updateUserInfoToServer: (info: Partial<Info>) => Promise<void>;
   updatePhoneToServer: (newPhone: string) => Promise<void>;
+  // 设置用户更新回调 - 用于同步AuthContext
+  setUserUpdatedCallback: (callback: (updatedInfo: Partial<User>) => Promise<void>) => void;
 }
 
 // 存储键名
@@ -56,6 +58,7 @@ let currentInfo: Info = { ...defaultInfo };
 class InfoManagerText implements InfoManager {
   private initialized = false;
   private baseURL = config.api.baseUrl;
+  private userUpdatedCallback: ((updatedInfo: Partial<User>) => Promise<void>) | null = null;
   
   // 获取认证token
   private async getAuthToken(): Promise<string> {
@@ -106,19 +109,38 @@ class InfoManagerText implements InfoManager {
     }
   }
 
-  // 与认证系统同步
+  // 与认证系统同步 - 智能合并策略
   async syncWithAuth(user: User) {
     try {
-      currentInfo = {
-        name: user.name,
-        gender: user.gender,
-        date: user.date,
-        avatar: user.avatar,
-        phone: user.phone,
-        address: user.address,
-        urgentPhone: user.urgentPhone,
-      };
+      if (!currentInfo) {
+        // 如果本地没有数据，直接使用 auth 的数据
+        currentInfo = {
+          name: user.name,
+          gender: user.gender,
+          date: user.date,
+          avatar: user.avatar,
+          phone: user.phone,
+          address: user.address,
+          urgentPhone: user.urgentPhone,
+        };
+      } else {
+        // 智能合并：只有在 AuthContext 中的字段为空或不同时才覆盖
+        const updatedInfo = { ...currentInfo };
+
+        // 只有当 AuthContext 中的字段不为空且与本地不同时才更新
+        if (user.name && user.name !== currentInfo.name) updatedInfo.name = user.name;
+        if (user.gender && user.gender !== currentInfo.gender) updatedInfo.gender = user.gender;
+        if (user.date && user.date !== currentInfo.date) updatedInfo.date = user.date;
+        if (user.avatar && user.avatar !== currentInfo.avatar) updatedInfo.avatar = user.avatar;
+        if (user.phone && user.phone !== currentInfo.phone) updatedInfo.phone = user.phone;
+        if (user.address && user.address !== currentInfo.address) updatedInfo.address = user.address;
+        if (user.urgentPhone && user.urgentPhone !== currentInfo.urgentPhone) updatedInfo.urgentPhone = user.urgentPhone;
+
+        currentInfo = updatedInfo;
+      }
+
       await this.saveToStorage();
+      console.log('智能同步完成 (Text):', currentInfo);
     } catch (error) {
       console.error('同步认证用户信息失败:', error);
     }
@@ -139,12 +161,30 @@ class InfoManagerText implements InfoManager {
     await this.initialize();
     currentInfo.gender = gender;
     await this.saveToStorage();
+
+    // 开发环境中，更新本地后立即调用回调
+    if (this.userUpdatedCallback) {
+      try {
+        await this.userUpdatedCallback({ gender });
+      } catch (error) {
+        console.error('同步性别到AuthContext失败:', error);
+      }
+    }
   }
 
   async updateDate(date: string) {
     await this.initialize();
     currentInfo.date = date;
     await this.saveToStorage();
+
+    // 开发环境中，更新本地后立即调用回调
+    if (this.userUpdatedCallback) {
+      try {
+        await this.userUpdatedCallback({ date });
+      } catch (error) {
+        console.error('同步生日到AuthContext失败:', error);
+      }
+    }
   }
 
   async updateAvatar(avatar: string) {
@@ -216,8 +256,9 @@ class InfoManagerText implements InfoManager {
       const result: ApiResponse<any> = await response.json();
       handleApiResponse(result);
       
-      // 更新本地信息
-      await this.updateInfo({ ...currentInfo, ...info });
+      // 更新本地信息 - 只更新指定的字段，避免覆盖其他字段
+      const updatedInfo = { ...currentInfo, ...info };
+      await this.updateInfo(updatedInfo);
     } catch (error) {
       handleApiError(error);
     }
@@ -246,12 +287,18 @@ class InfoManagerText implements InfoManager {
       handleApiError(error);
     }
   }
+
+  // 设置用户更新回调
+  setUserUpdatedCallback(callback: (updatedInfo: Partial<User>) => Promise<void>): void {
+    this.userUpdatedCallback = callback;
+  }
 }
 
 class InfoManagerImpl implements InfoManager {
   private baseURL = config.api.baseUrl;
   private currentInfo: Info | null = null;
   private initialized = false;
+  private userUpdatedCallback: ((updatedInfo: Partial<User>) => Promise<void>) | null = null;
 
   // 获取认证token
   private async getAuthToken(): Promise<string> {
@@ -308,20 +355,39 @@ class InfoManagerImpl implements InfoManager {
     this.initialized = true;
   }
 
-  // 与认证系统同步
+  // 与认证系统同步 - 智能合并策略
   async syncWithAuth(user: User): Promise<void> {
     try {
-      this.currentInfo = {
-        name: user.name,
-        gender: user.gender,
-        date: user.date,
-        avatar: user.avatar,
-        phone: user.phone,
-        address: user.address,
-        urgentPhone: user.urgentPhone,
-      };
+      if (!this.currentInfo) {
+        // 如果本地没有数据，直接使用 auth 的数据
+        this.currentInfo = {
+          name: user.name,
+          gender: user.gender,
+          date: user.date,
+          avatar: user.avatar,
+          phone: user.phone,
+          address: user.address,
+          urgentPhone: user.urgentPhone,
+        };
+      } else {
+        // 智能合并：只有在 AuthContext 中的字段为空或不同时才覆盖
+        const updatedInfo = { ...this.currentInfo };
+
+        // 只有当 AuthContext 中的字段不为空且与本地不同时才更新
+        if (user.name && user.name !== this.currentInfo.name) updatedInfo.name = user.name;
+        if (user.gender && user.gender !== this.currentInfo.gender) updatedInfo.gender = user.gender;
+        if (user.date && user.date !== this.currentInfo.date) updatedInfo.date = user.date;
+        if (user.avatar && user.avatar !== this.currentInfo.avatar) updatedInfo.avatar = user.avatar;
+        if (user.phone && user.phone !== this.currentInfo.phone) updatedInfo.phone = user.phone;
+        if (user.address && user.address !== this.currentInfo.address) updatedInfo.address = user.address;
+        if (user.urgentPhone && user.urgentPhone !== this.currentInfo.urgentPhone) updatedInfo.urgentPhone = user.urgentPhone;
+
+        this.currentInfo = updatedInfo;
+      }
+
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(this.currentInfo));
       ChangeFlag = !ChangeFlag;
+      console.log('智能同步完成:', this.currentInfo);
     } catch (error) {
       console.error('同步认证用户信息失败:', error);
     }
@@ -360,7 +426,17 @@ class InfoManagerImpl implements InfoManager {
     console.log("updategender", this.currentInfo);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(this.currentInfo));
     ChangeFlag = !ChangeFlag;
-    await this.updateUserInfoToServer({ gender });
+
+    try {
+      await this.updateUserInfoToServer({ gender });
+      // 成功更新后调用回调通知AuthContext
+      if (this.userUpdatedCallback) {
+        await this.userUpdatedCallback({ gender });
+      }
+    } catch (error) {
+      console.error('更新性别到服务器失败:', error);
+      // API失败时，本地修改仍然有效，但不调用回调
+    }
   }
 
   async updateDate(date: string): Promise<void> {
@@ -368,9 +444,18 @@ class InfoManagerImpl implements InfoManager {
     this.currentInfo!.date = date;
     // console.log("updatedate", this.currentInfo);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(this.currentInfo));
-    await this.updateUserInfoToServer({ date });
-    // console.log("updatebug");
     ChangeFlag = !ChangeFlag;
+
+    try {
+      await this.updateUserInfoToServer({ date });
+      // 成功更新后调用回调通知AuthContext
+      if (this.userUpdatedCallback) {
+        await this.userUpdatedCallback({ date });
+      }
+    } catch (error) {
+      console.error('更新生日到服务器失败:', error);
+      // API失败时，本地修改仍然有效，但不调用回调
+    }
   }
 
   async updateAvatar(avatar: string): Promise<void> {
@@ -435,8 +520,9 @@ class InfoManagerImpl implements InfoManager {
       const result: ApiResponse<any> = await response.json();
       handleApiResponse(result);
       
-      // 更新本地信息
-      await this.updateInfo({ ...this.currentInfo!, ...info });
+      // 更新本地信息 - 只更新指定的字段，避免覆盖其他字段
+      const updatedInfo = { ...this.currentInfo!, ...info };
+      await this.updateInfo(updatedInfo);
     } catch (error) {
       handleApiError(error);
     }
@@ -458,12 +544,17 @@ class InfoManagerImpl implements InfoManager {
 
       const result: ApiResponse<any> = await response.json();
       handleApiResponse(result);
-      
+
       // 更新本地手机号
       await this.updatePhone(newPhone);
     } catch (error) {
       handleApiError(error);
     }
+  }
+
+  // 设置用户更新回调
+  setUserUpdatedCallback(callback: (updatedInfo: Partial<User>) => Promise<void>): void {
+    this.userUpdatedCallback = callback;
   }
 }
 

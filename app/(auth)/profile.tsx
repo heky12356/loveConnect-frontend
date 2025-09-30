@@ -24,7 +24,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
-  const { updateProfile, changePassword, isLoading } = useAuthManager();
+  const { updateProfile, uploadAvatar, changePassword, isLoading } = useAuthManager();
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -73,7 +73,26 @@ export default function ProfilePage() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      updateProfileField('avatar', result.assets[0].uri);
+      try {
+        // 创建File对象用于上传
+        const asset = result.assets[0];
+        const file = {
+          uri: asset.uri,
+          name: asset.fileName || `avatar_${Date.now()}.jpg`,
+          type: asset.mimeType || 'image/jpeg'
+        } as any;
+
+        // 使用统一的头像上传方法，确保状态同步
+        const avatarUrl = await uploadAvatar(file);
+
+        // 更新本地显示状态
+        updateProfileField('avatar', avatarUrl);
+
+        Alert.alert('成功', '头像上传成功');
+      } catch (error) {
+        console.error('头像上传失败:', error);
+        Alert.alert('错误', error instanceof Error ? error.message : '头像上传失败，请重试');
+      }
     }
   };
 
