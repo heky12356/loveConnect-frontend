@@ -42,6 +42,10 @@ const handleMsgPress = () => {
   router.push("/(msgPage)/msgPage");
 };
 
+const handleQuestionPress = () => {
+  router.push("/(helpPage)/helpPage");
+};
+
 const handleAiQuestionPress = () => {
   router.push("/(aiListPage)/aiListPage");
 };
@@ -84,7 +88,7 @@ export default function Index() {
     console.log("Selected mood:", selectedMood);
 
     // 调用心情保存API
-    if (user?.id) {
+    if (user?.uId) {
       try {
         const moodMapping = {
           "happy": "开心",
@@ -93,7 +97,8 @@ export default function Index() {
           "angry": "生气"
         };
 
-        const result = await saveMood(user.id, moodMapping[selectedMood as keyof typeof moodMapping]);
+        // 使用数据库中的真实用户ID (uId)，而不是phone
+        const result = await saveMood(user.uId, moodMapping[selectedMood as keyof typeof moodMapping]);
         console.log('心情保存成功:', result);
       } catch (error) {
         console.error('保存心情失败:', error);
@@ -414,7 +419,7 @@ export default function Index() {
         </View>
 
         {/* 有问题点这里 */}
-        <View style={styles.questionSection}>
+        <Pressable style={styles.questionSection} onPress={handleQuestionPress}>
           <View>
             <Text style={styles.questionText}>有问题?</Text>
             <Text style={styles.questionText}>点这里-&gt;</Text>
@@ -428,7 +433,7 @@ export default function Index() {
               }}
             />
           </View>
-        </View>
+        </Pressable>
       </View>
     </LinearGradient>
   );
