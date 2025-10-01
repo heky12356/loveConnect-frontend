@@ -6,7 +6,7 @@ import { useImg } from "@/hook/useImg";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Dimensions, StyleSheet, View } from "react-native";
+import { Dimensions, ScrollView, StyleSheet, View } from "react-native";
 const { width, height } = Dimensions.get("window");
 
 const handleAddItemPress = () => {
@@ -53,12 +53,20 @@ export default function AiListPage() {
       }}
     >
       <View style={styles.container}>
-        <View style={styles.content}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={true}
+        >
           {aiList.map((item: any) => (
-            <AiListItem key={item.id} name={item.name} img={item.img} />
+            <AiListItem
+              key={item.id}
+              name={item.name}
+              img={item.img}
+            />
           ))}
           <AiListAddItemButton onPress={handleAddItemPress} />
-        </View>
+        </ScrollView>
         <View style={styles.returnButton}>
           <ReturnButton path="/" />
         </View>
@@ -69,7 +77,6 @@ export default function AiListPage() {
 
 const styles = StyleSheet.create({
   container: {
-    // flexDirection: 'row',
     justifyContent: "center",
     alignItems: "center",
     paddingLeft: width * 0.1,
@@ -77,21 +84,20 @@ const styles = StyleSheet.create({
     width: width,
     height: height,
   },
-  content: {
-    height: height * 0.8,
+  scrollView: {
+    flex: 1,
     width: width,
+  },
+  content: {
     paddingTop: height * 0.1,
-    // justifyContent: "center",
     alignItems: "center",
-    // backgroundColor: "orange",
+    minHeight: height * 0.8,
     gap: height * 0.03,
   },
   returnButton: {
     height: height * 0.13,
     width: width,
     justifyContent: "center",
-    // alignItems: "center",
-    // backgroundColor: "orange",
     paddingLeft: width * 0.05,
     paddingBottom: height * 0.03,
   },
