@@ -158,7 +158,7 @@ class AiManagerImpl implements AiManager {
         return {
           id: item.voiceId || `ai_${index + 1}`, // 使用voiceId作为id，或生成默认id
           name: item.relation || '未命名AI', // 使用relation作为显示名称
-          img: 'https://pan.heky.top/tmp/profile.png', // 使用默认头像
+          img: item.aiAvatarUrl || 'https://pan.heky.top/tmp/profile.png', // 使用默认头像
           voice: item.voiceId || '',
           createdAt: new Date().toISOString(),
           profileId: index + 1000, // 生成临时profileId
@@ -211,6 +211,8 @@ class AiManagerImpl implements AiManager {
       });
 
       const result: ApiResponse<VoiceInitResponse> = await response.json();
+      console.log('API响应状态:', response.status, response.statusText);
+      console.log('处理前的数据:', result);
       return handleApiResponse(result);
     } catch (error) {
       handleApiError(error);
