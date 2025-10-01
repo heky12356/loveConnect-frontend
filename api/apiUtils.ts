@@ -2,7 +2,7 @@
 
 // 统一API响应格式接口
 export interface ApiResponse<T = any> {
-  code: number;
+  code: string | number;
   msg: string;
   data: T;
 }
@@ -24,11 +24,11 @@ export class ApiError extends Error {
 
 // 统一处理API响应
 export function handleApiResponse<T>(response: ApiResponse<T>): T {
-  if (response.code === 200) {
+  if (response.code === "200" || response.code === 200) {
     return response.data;
   }
   
-  throw new ApiError(response.code, response.msg, response.data);
+  throw new ApiError(Number(response.code), response.msg, response.data);
 }
 
 // 统一处理API错误
